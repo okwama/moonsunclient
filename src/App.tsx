@@ -1,73 +1,81 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import DashboardLayout from './components/Dashboard/DashboardLayout';
 import Overview from './components/Dashboard/Overview';
 import ClientDetailPage from './pages/ClientDetailPage';
-import ClientsPage from './pages/ClientsPage';
-import PoliciesPage from './pages/PoliciesPage';
+import UnscheduledRequests from './pages/UnscheduledRequests';
+import PhotoListPage from './pages/PhotoListPage';
 import ClaimsPage from './pages/ClaimsPage';
 import ReportsPage from './pages/ReportsPage';
 import SettingsPage from './pages/SettingsPage';
 import Layout from './components/Layout/Layout';
-import { AuthProvider, useAuth } from './context/AuthContext';
+import { useAuth } from './contexts/AuthContext';
+import PendingRequests from './pages/PendingRequests';
+import InTransitRequests from './pages/InTransitRequests';
 
 // Protected route wrapper
 const ProtectedRoute = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user } = useAuth();
   
-  if (isLoading) {
-    return <div>Loading...</div>; // Or a loading spinner
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
+  return <Outlet />;
 };
 
 // Redirect authenticated users away from login
 const LoginRoute = () => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user } = useAuth();
 
-  if (isLoading) {
-    return <div>Loading...</div>; // Or a loading spinner
+  if (user) {
+    return <Navigate to="/" replace />;
   }
 
-  return isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />;
+  return <LoginPage />;
 };
-export function App() {
+
+// Dashboard layout wrapper
+const DashboardWrapper = () => {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginRoute />} />
-          
-          {/* Protected routes */}
-          <Route element={<ProtectedRoute />}>
-            <Route path="/" element={
-              <Layout>
-                <DashboardLayout />
-              </Layout>
-            }>
-              <Route index element={<Overview />} />
-              <Route path="dashboard">
-                <Route index element={<Overview />} />
-                <Route path="clients" element={<ClientsPage />} />
-                <Route path="clients/:id" element={<ClientDetailPage />} />
-                <Route path="policies" element={<PoliciesPage />} />
-                <Route path="claims" element={<ClaimsPage />} />
-                <Route path="reports" element={<ReportsPage />} />
-              </Route>
-            </Route>
-            
-            <Route path="/settings" element={
-              <Layout>
-                <SettingsPage />
-              </Layout>
-            } />
-          </Route>
-          
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <Layout>
+      <DashboardLayout />
+    </Layout>
   );
-}
+};
+
+const App = () => {
+  return (
+    <Routes>
+      {/* Public routes */}
+      <Route path="/login" element={<LoginRoute />} />
+      
+      {/* Protected routes */}
+      <Route element={<ProtectedRoute />}>
+        <Route element={<DashboardWrapper />}>
+          <Route path="/" element={<UnscheduledRequests />} />
+          <Route path="/dashboard" element={<UnscheduledRequests />} />
+          <Route path="/dashboard/unscheduled" element={<UnscheduledRequests />} />
+          <Route path="/dashboard/pending" element={<PendingRequests />} />
+          <Route path="/dashboard/in-transit" element={<InTransitRequests />} />
+          <Route path="/dashboard/clients/:id" element={<ClientDetailPage />} />
+          <Route path="/dashboard/photo-list" element={<PhotoListPage />} />
+          <Route path="/dashboard/claims" element={<ClaimsPage />} />
+          <Route path="/dashboard/reports" element={<ReportsPage />} />
+        </Route>
+        
+        <Route path="/settings" element={
+          <Layout>
+            <SettingsPage />
+          </Layout>
+        } />
+      </Route>
+      
+      {/* Catch all route */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+};
+
+export default App;

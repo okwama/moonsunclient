@@ -141,6 +141,14 @@ export const dashboardStats = {
   averageClaimValue: 22450.75
 };
 
+export const requests = {
+  unscheduled: 10,
+  pending: 3,
+  inTransit: 3,
+  completed: 5,
+  
+};
+
 export const recentActivity = [{
   id: '1',
   type: 'new_policy',

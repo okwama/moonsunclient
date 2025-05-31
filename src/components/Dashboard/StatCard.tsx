@@ -9,6 +9,7 @@ interface StatCardProps {
   };
   prefix?: string;
   suffix?: string;
+  position: number;
 }
 const StatCard: React.FC<StatCardProps> = ({
   title,
@@ -16,19 +17,22 @@ const StatCard: React.FC<StatCardProps> = ({
   icon,
   change,
   prefix = '',
-  suffix = ''
+  suffix = '',
+  position
 }) => {
-  return <div className="bg-white overflow-hidden shadow rounded-lg">
+  const bgColor = position % 2 === 1 ? 'bg-red-900' : 'bg-blue-950';
+  
+  return <div className={`${bgColor} overflow-hidden shadow rounded-lg opacity-80`}>
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0 bg-red-50 rounded-md p-3">{icon}</div>
           <div className="ml-5 w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">
+              <dt className="text-sm font-medium text-white truncate">
                 {title}
               </dt>
               <dd>
-                <div className="text-lg font-medium text-gray-900">
+                <div className="text-lg font-medium text-white">
                   {prefix}
                   {value}
                   {suffix}
@@ -38,15 +42,7 @@ const StatCard: React.FC<StatCardProps> = ({
           </div>
         </div>
       </div>
-      {change && <div className="bg-gray-50 px-5 py-3">
-          <div className="text-sm">
-            <span className={`font-medium ${change.positive ? 'text-green-600' : 'text-red-600'}`}>
-              {change.positive ? '+' : '-'}
-              {Math.abs(change.value)}%
-            </span>{' '}
-            <span className="text-gray-500">from previous period</span>
-          </div>
-        </div>}
+       
     </div>;
 };
 export default StatCard;

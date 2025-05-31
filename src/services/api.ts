@@ -8,14 +8,12 @@ import axios, {
 // Enhanced type definitions
 export type RequestConfig<T = any> = AxiosRequestConfig<T>;
 export type Response<T = any, D = any> = AxiosResponse<T, D>;
-
-// Environment types are now in vite-env.d.ts
-export interface ApiResponse<T> {
+export type ApiResponse<T = any> = {
   data: T;
   status: number;
   statusText: string;
-  headers?: any;
-}
+  headers: any;
+};
 
 export interface ApiError extends Error {
   status: number;
@@ -36,7 +34,7 @@ const getApiBaseUrl = (): string => {
   const url = import.meta.env.VITE_API_URL;
   if (!url) {
     console.warn('VITE_API_URL is not defined, falling back to localhost');
-    return 'http://localhost:3000';
+    return 'http://localhost:5000/api';
   }
   return url;
 };
@@ -50,7 +48,7 @@ const api = axios.create({
     'Accept': 'application/json'
   },
   timeout: 10000,
-  withCredentials: true // Consider for cookie-based auth
+  withCredentials: false
 });
 
 // Request interceptor
@@ -61,12 +59,11 @@ api.interceptors.request.use(
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
-    // You could add a request ID or other tracing headers here
+    console.log('Making request to:', config.url, 'with config:', config);
     return config;
   },
   (error: AxiosError) => {
-    // Add additional error handling if needed
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -74,13 +71,12 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response: AxiosResponse): AxiosResponse<any> => {
-    // You could transform the response data here if needed
+    console.log('Received response:', response.status, response.data);
     return response as unknown as Response<any>;
   },
   async (error: unknown): Promise<never> => {
-    // Handle Axios errors
+    console.error('Response error:', error);
     if (axios.isAxiosError(error)) {
-      // Handle timeout errors
       if (error.code === 'ECONNABORTED') {
         const timeoutError = new Error('Request timeout') as ApiError;
         timeoutError.status = 408;
@@ -89,7 +85,6 @@ api.interceptors.response.use(
         throw timeoutError;
       }
 
-      // Handle network errors (no response)
       if (!error.response) {
         const networkError = new Error(error.message || 'Network error') as ApiError;
         networkError.status = 0;
@@ -97,24 +92,19 @@ api.interceptors.response.use(
         throw networkError;
       }
 
-      // Handle HTTP errors with responses
       const { status, data } = error.response;
       
-      // Handle specific status codes
       switch (status) {
         case 401:
           localStorage.removeItem('token');
-          // Consider redirecting through a router instead of window.location
           window.location.href = '/login';
           break;
         case 403:
         case 404:
         case 500:
-          // Add specific handling as needed
           break;
       }
 
-      // Create a new error with response details
       const errorData = new Error(
         typeof data === 'object' && data !== null && 'message' in data 
           ? (data as { message: string }).message 
@@ -132,7 +122,6 @@ api.interceptors.response.use(
       throw errorData;
     }
 
-    // Handle non-Axios errors
     const unknownError = new Error(
       error instanceof Error ? error.message : 'An unknown error occurred'
     ) as ApiError;
@@ -183,14 +172,12 @@ export const del = async <T>(url: string, config?: RequestConfig): Promise<ApiRe
   return response;
 };
 
-// Optionally add other HTTP methods as needed
 export const apiClient = {
   get,
   post,
   put,
   patch,
   delete: del,
-  // Add other methods if needed
 };
 
 export default api;

@@ -1,20 +1,23 @@
 import React, { useEffect, useState, createContext, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+
 interface User {
   id: string;
-  name: string;
+  username: string;
   email: string;
   role: string;
-  avatar: string;
 }
+
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
 export const AuthProvider: React.FC<{
   children: React.ReactNode;
 }> = ({
@@ -22,34 +25,54 @@ export const AuthProvider: React.FC<{
 }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     // Check if user is logged in from localStorage
     const storedUser = localStorage.getItem('user');
-    if (storedUser) {
+    const token = localStorage.getItem('token');
+    if (storedUser && token) {
       setUser(JSON.parse(storedUser));
     }
     setIsLoading(false);
   }, []);
-  const login = async (email: string, password: string) => {
-    // This is a demo login - in a real app, this would be an API call
-    if (email === 'admin@swisslife.com' && password === 'demo123') {
-      const user = {
-        id: '1',
-        name: 'Admin User',
-        email: 'admin@swisslife.com',
-        role: 'Administrator',
-        avatar: 'https://randomuser.me/api/portraits/men/32.jpg'
+
+  const login = async (username: string, password: string) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid credentials');
+      }
+
+      const data = await response.json();
+      const userData = {
+        id: data.user.id,
+        username: data.user.username,
+        email: data.user.email,
+        role: data.user.role,
       };
-      setUser(user);
-      localStorage.setItem('user', JSON.stringify(user));
+
+      setUser(userData);
+      localStorage.setItem('user', JSON.stringify(userData));
+      localStorage.setItem('token', data.token);
       return Promise.resolve();
+    } catch (error) {
+      return Promise.reject(error);
     }
-    return Promise.reject('Invalid credentials');
   };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
+
   return <AuthContext.Provider value={{
     user,
     login,
@@ -60,6 +83,7 @@ export const AuthProvider: React.FC<{
       {children}
     </AuthContext.Provider>;
 };
+
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   if (context === undefined) {
@@ -67,6 +91,7 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
 export const ProtectedRoute: React.FC<{
   children: React.ReactNode;
 }> = ({
