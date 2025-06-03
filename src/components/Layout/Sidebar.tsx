@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
-import { XIcon, HomeIcon, UsersIcon, CogIcon, ShieldIcon, BoxIcon, ImageIcon } from 'lucide-react';
+import { XIcon, HomeIcon, UsersIcon, CogIcon, ShieldIcon, BoxIcon, ImageIcon, InfoIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SidebarProps {
@@ -21,15 +21,20 @@ const navigation = [
     icon: ImageIcon
   },
   {
-    name: 'Claims',
-    href: '/dashboard/claims',
-    icon: ShieldIcon
-  },
-  {
     name: 'Reports',
-    href: '/dashboard/reports',
+    href: '/dashboard/claims',
     icon: BoxIcon
   },
+  {
+    name: 'Notice Board',
+    href: '/dashboard/claims',
+    icon: InfoIcon
+  },
+  // {
+  //   name: 'Reports',
+  //   href: '/dashboard/reports',
+  //   icon: BoxIcon
+  // },
   {
     name: 'Settings',
     href: '/settings',

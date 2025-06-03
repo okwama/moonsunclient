@@ -48,6 +48,17 @@ CREATE TABLE IF NOT EXISTS requests (
   FOREIGN KEY (service_type_id) REFERENCES service_types(id)
 );
 
+-- Create staff table
+CREATE TABLE IF NOT EXISTS staff (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  photo_url VARCHAR(255) NOT NULL,
+  position VARCHAR(255) NOT NULL,
+  department VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- Insert test user (password: test123)
 INSERT INTO users (username, email, password, role) VALUES 
 ('test', 'test@example.com', '$2a$10$X7UrH5YxX5YxX5YxX5YxX.5YxX5YxX5YxX5YxX5YxX5YxX5YxX', 'admin')
@@ -59,4 +70,12 @@ INSERT INTO service_types (name, description) VALUES
 ('Express Delivery', 'Fast delivery service with priority handling'),
 ('Bulk Delivery', 'Delivery service for large or multiple items'),
 ('Special Handling', 'Delivery service for fragile or special items')
+ON DUPLICATE KEY UPDATE id=id;
+
+-- Insert initial staff data
+INSERT INTO staff (name, photo_url, position, department) VALUES 
+('John Doe', 'https://randomuser.me/api/portraits/men/1.jpg', 'Senior Developer', 'Engineering'),
+('Jane Smith', 'https://randomuser.me/api/portraits/women/1.jpg', 'Project Manager', 'Management'),
+('Mike Johnson', 'https://randomuser.me/api/portraits/men/2.jpg', 'UI Designer', 'Design'),
+('Sarah Williams', 'https://randomuser.me/api/portraits/women/2.jpg', 'QA Engineer', 'Engineering')
 ON DUPLICATE KEY UPDATE id=id; 

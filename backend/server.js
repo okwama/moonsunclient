@@ -3,6 +3,7 @@ const cors = require('cors');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('./database/db');
+const staffController = require('./controllers/staffController');
 require('dotenv').config();
 
 const app = express();
@@ -292,6 +293,13 @@ app.patch('/api/requests/:id', async (req, res) => {
     res.status(500).json({ message: 'Internal server error' });
   }
 });
+
+// Staff routes
+app.get('/api/staff', staffController.getAllStaff);
+app.get('/api/staff/:id', staffController.getStaffById);
+app.post('/api/staff', staffController.createStaff);
+app.put('/api/staff/:id', staffController.updateStaff);
+app.delete('/api/staff/:id', staffController.deleteStaff);
 
 // Example API endpoint
 app.get('/api/test', (req, res) => {
