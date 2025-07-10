@@ -4,6 +4,7 @@ import { XIcon } from 'lucide-react';
 import { RequestData, requestService } from '../../services/requestService';
 import { ServiceType, serviceTypeService } from '../../services/serviceTypeService';
 import { useAuth } from '../../contexts/AuthContext';
+import { Branch, getBranches } from '../../services/branchService';
 
 interface RequestFormModalProps {
   isOpen: boolean;
@@ -11,83 +12,77 @@ interface RequestFormModalProps {
   onSuccess: () => void;
 }
 
+export interface RequestFormData {
+  branch_id: number;
+  service_type_id: number;
+  pickup_location: string;
+  dropoff_location: string;
+  pickup_date: string;
+  pickup_time: string;
+}
+
 const RequestFormModal: React.FC<RequestFormModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const { user } = useAuth();
-  const [formData, setFormData] = useState<Partial<RequestData>>({
-    pickupLocation: '',
-    deliveryLocation: '',
-    pickupDate: '',
-    description: '',
-    priority: 'medium',
-    serviceTypeId: undefined,
+  const [formData, setFormData] = useState<RequestFormData>({
+    branch_id: 0,
+    service_type_id: 0,
+    pickup_location: '',
+    dropoff_location: '',
+    pickup_date: '',
+    pickup_time: ''
   });
+  const [branches, setBranches] = useState<Branch[]>([]);
   const [serviceTypes, setServiceTypes] = useState<ServiceType[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const fetchServiceTypes = async () => {
+    const fetchData = async () => {
       try {
-        const types = await serviceTypeService.getServiceTypes();
-        setServiceTypes(types);
+        setIsLoading(true);
+        setError(null);
+        if (!user?.client_id) {
+          throw new Error('Client ID is required');
+        }
+        const [branchesData, serviceTypesData] = await Promise.all([
+          getBranches(user.client_id),
+          serviceTypeService.getServiceTypes()
+        ]);
+        setBranches(branchesData);
+        setServiceTypes(serviceTypesData);
       } catch (error) {
-        console.error('Error fetching service types:', error);
-        setError('Failed to load service types. Please try again.');
+        console.error('Error fetching data:', error);
+        setError('Failed to load form data');
       } finally {
         setIsLoading(false);
       }
     };
 
     if (isOpen) {
-      fetchServiceTypes();
+      fetchData();
     }
-  }, [isOpen]);
+  }, [isOpen, user?.client_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
     setIsSubmitting(true);
-
-    if (!user) {
-      setError('You must be logged in to create a request');
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (!formData.serviceTypeId) {
-      setError('Please select a service type');
-      setIsSubmitting(false);
-      return;
-    }
+    setError(null);
 
     try {
-      const requestData: RequestData = {
-        ...formData as RequestData,
-        userId: user.id,
-        userName: user.username
-      };
-      await requestService.createRequest(requestData);
+      await requestService.createRequest(formData);
       onSuccess();
       onClose();
-    } catch (error: any) {
-      setError(error.response?.data?.message || 'Failed to create request. Please try again.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create request');
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'serviceTypeId' ? Number(value) : value
-    }));
-  };
-
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-10" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -113,138 +108,123 @@ const RequestFormModal: React.FC<RequestFormModalProps> = ({ isOpen, onClose, on
             >
               <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <Dialog.Title
-                  as="div"
-                  className="flex items-center justify-between mb-4"
+                  as="h3"
+                  className="text-lg font-medium leading-6 text-gray-900"
                 >
-                  <h3 className="text-lg font-medium leading-6 text-gray-900">
-                    Add New Request
-                  </h3>
-                  <button
-                    type="button"
-                    className="text-gray-400 hover:text-gray-500"
-                    onClick={onClose}
-                  >
-                    <XIcon className="h-6 w-6" />
-                  </button>
+                  Create Service Request
                 </Dialog.Title>
 
                 {error && (
-                  <div className="mb-4 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
+                  <div className="mt-2 p-2 bg-red-50 text-red-700 rounded">
                     {error}
                   </div>
                 )}
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="serviceTypeId" className="block text-sm font-medium text-gray-700">
-                      Service Type
-                    </label>
-                    <select
-                      id="serviceTypeId"
-                      name="serviceTypeId"
-                      required
-                      value={formData.serviceTypeId || ''}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                      disabled={isLoading}
-                    >
-                      <option value="">Select a service type</option>
-                      {serviceTypes.map((type) => (
-                        <option key={type.id} value={type.id}>
-                          {type.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <form onSubmit={handleSubmit} className="mt-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Branch
+                      </label>
+                      <select
+                        value={formData.branch_id}
+                        onChange={(e) => setFormData({ ...formData, branch_id: Number(e.target.value) })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select a branch</option>
+                        {branches.map((branch) => (
+                          <option key={branch.id} value={branch.id}>
+                            {branch.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                  <div>
-                    <label htmlFor="pickupLocation" className="block text-sm font-medium text-gray-700">
-                      Pickup Location
-                    </label>
-                    <input
-                      type="text"
-                      id="pickupLocation"
-                      name="pickupLocation"
-                      required
-                      value={formData.pickupLocation}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Service Type
+                      </label>
+                      <select
+                        value={formData.service_type_id}
+                        onChange={(e) => setFormData({ ...formData, service_type_id: Number(e.target.value) })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      >
+                        <option value="">Select a service type</option>
+                        {serviceTypes.map((type) => (
+                          <option key={type.id} value={type.id}>
+                            {type.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                  <div>
-                    <label htmlFor="deliveryLocation" className="block text-sm font-medium text-gray-700">
-                      Delivery Location
-                    </label>
-                    <input
-                      type="text"
-                      id="deliveryLocation"
-                      name="deliveryLocation"
-                      required
-                      value={formData.deliveryLocation}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Pickup Location
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.pickup_location}
+                        onChange={(e) => setFormData({ ...formData, pickup_location: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
 
-                  <div>
-                    <label htmlFor="pickupDate" className="block text-sm font-medium text-gray-700">
-                      Pickup Date
-                    </label>
-                    <input
-                      type="datetime-local"
-                      id="pickupDate"
-                      name="pickupDate"
-                      required
-                      value={formData.pickupDate}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Dropoff Location
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.dropoff_location}
+                        onChange={(e) => setFormData({ ...formData, dropoff_location: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
 
-                  <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <textarea
-                      id="description"
-                      name="description"
-                      rows={3}
-                      value={formData.description}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Pickup Date
+                      </label>
+                      <input
+                        type="date"
+                        value={formData.pickup_date}
+                        onChange={(e) => setFormData({ ...formData, pickup_date: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
 
-                  <div>
-                    <label htmlFor="priority" className="block text-sm font-medium text-gray-700">
-                      Priority
-                    </label>
-                    <select
-                      id="priority"
-                      name="priority"
-                      value={formData.priority}
-                      onChange={handleChange}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-red-500 focus:ring-red-500 sm:text-sm"
-                    >
-                      <option value="low">Low</option>
-                      <option value="medium">Medium</option>
-                      <option value="high">High</option>
-                    </select>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Pickup Time
+                      </label>
+                      <input
+                        type="time"
+                        value={formData.pickup_time}
+                        onChange={(e) => setFormData({ ...formData, pickup_time: e.target.value })}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       type="button"
                       onClick={onClose}
-                      className="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
-                      disabled={isSubmitting || isLoading}
-                      className="inline-flex justify-center rounded-md border border-transparent bg-red-900 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50"
+                      disabled={isSubmitting}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
                     >
                       {isSubmitting ? 'Creating...' : 'Create Request'}
                     </button>

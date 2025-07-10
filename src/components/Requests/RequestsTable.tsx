@@ -5,17 +5,15 @@ import { RequestData } from '../../services/requestService';
 
 interface RequestsTableProps {
   requests: RequestData[];
-  onRequestClick?: (requestId: string) => void;
+  onRequestClick?: (requestId: number) => void;
 }
 
 const RequestsTable: React.FC<RequestsTableProps> = ({ requests, onRequestClick }) => {
   const navigate = useNavigate();
 
-  const handleRequestClick = (requestId: string) => {
+  const handleRequestClick = (requestId: number) => {
     if (onRequestClick) {
       onRequestClick(requestId);
-    } else {
-      navigate(`/requests/${requestId}`);
     }
   };
 
@@ -69,7 +67,7 @@ const RequestsTable: React.FC<RequestsTableProps> = ({ requests, onRequestClick 
                     <tr
                       key={request.id}
                       className="hover:bg-gray-50 cursor-pointer transition-colors duration-150"
-                      onClick={() => handleRequestClick(request.id.toString())}
+                      onClick={() => request.id && handleRequestClick(request.id)}
                     >
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">

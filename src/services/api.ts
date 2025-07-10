@@ -32,24 +32,72 @@ export interface ApiError extends Error {
 // Validate and get API base URL
 const getApiBaseUrl = (): string => {
   const url = import.meta.env.VITE_API_URL;
+  console.log('Environment variables:', import.meta.env);
+  console.log('VITE_API_URL:', url);
   if (!url) {
     console.warn('VITE_API_URL is not defined, falling back to localhost');
     return 'http://localhost:5000/api';
   }
-  return url;
+  return url.endsWith('/api') ? url : `${url}/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();
+console.log('Using API base URL:', API_BASE_URL);
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json'
   },
   timeout: 10000,
-  withCredentials: false
+  withCredentials: true
 });
+
+// Add request interceptor for debugging
+api.interceptors.request.use(
+  (config) => {
+    console.log('Making request to:', {
+      url: config.url,
+      baseURL: config.baseURL,
+      fullURL: `${config.baseURL}${config.url}`,
+      method: config.method,
+      headers: config.headers,
+      data: config.data
+    });
+    return config;
+  },
+  (error) => {
+    console.error('Request error:', error);
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for debugging
+api.interceptors.response.use(
+  (response) => {
+    console.log('Response received:', response);
+    return response;
+  },
+  (error) => {
+    console.error('Response error:', error);
+    if (error.response) {
+      // The request was made and the server responded with a status code
+      // that falls out of the range of 2xx
+      console.error('Error response data:', error.response.data);
+      console.error('Error response status:', error.response.status);
+      return Promise.reject(new Error(error.response.data.message || 'An error occurred'));
+    } else if (error.request) {
+      // The request was made but no response was received
+      console.error('No response received:', error.request);
+      return Promise.reject(new Error('No response from server. Please check if the server is running.'));
+    } else {
+      // Something happened in setting up the request that triggered an Error
+      console.error('Error setting up request:', error.message);
+      return Promise.reject(new Error('Failed to set up request'));
+    }
+  }
+);
 
 // Request interceptor
 api.interceptors.request.use(

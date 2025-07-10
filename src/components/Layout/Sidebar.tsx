@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
-import { XIcon, HomeIcon, UsersIcon, CogIcon, ShieldIcon, BoxIcon, ImageIcon, InfoIcon } from 'lucide-react';
+import { XIcon, HomeIcon, UsersIcon, CogIcon, ShieldIcon, BoxIcon, ImageIcon, InfoIcon, GroupIcon, Tally4Icon, BellIcon, FileTextIcon, BarChart3, MessageCircleIcon } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SidebarProps {
@@ -16,19 +16,39 @@ const navigation = [
     icon: HomeIcon
   },
   {
-    name: 'Photo List',
-    href: '/dashboard/photo-list',
+    name: 'Chat Room',
+    href: '/chat-room',
+    icon: MessageCircleIcon
+  },
+  {
+    name: 'Guards List',
+    href: '/dashboard/staff-list',
     icon: ImageIcon
+  },
+  // {
+  //   name: 'Teams List',
+  //   href: '/dashboard/teams-list',
+  //   icon: GroupIcon
+  // },
+  {
+    name: 'Premises List',
+    href: '/dashboard/clients-list',
+    icon: UsersIcon
+  },
+  {
+    name: 'SOS',
+    href: '/dashboard/sos-list',
+    icon: UsersIcon
   },
   {
     name: 'Reports',
     href: '/dashboard/claims',
-    icon: BoxIcon
+    icon: Tally4Icon
   },
   {
     name: 'Notice Board',
     href: '/dashboard/claims',
-    icon: InfoIcon
+    icon: BellIcon
   },
   // {
   //   name: 'Reports',
@@ -39,6 +59,41 @@ const navigation = [
     name: 'Settings',
     href: '/settings',
     icon: CogIcon
+  },
+  {
+    name: 'Payables',
+    href: '/payables',
+    icon: BoxIcon
+  },
+  {
+    name: 'Receivables',
+    href: '/receivables',
+    icon: FileTextIcon
+  },
+  {
+    name: 'Reports',
+    href: '/reports/profit-loss',
+    icon: BarChart3
+  },
+  {
+    name: 'Balance Sheet',
+    href: '/reports/balance-sheet',
+    icon: BarChart3
+  },
+  {
+    name: 'Create Invoice',
+    href: '/create-invoice',
+    icon: FileTextIcon
+  },
+  {
+    name: 'Add Asset',
+    href: '/assets/add',
+    icon: BoxIcon
+  },
+  {
+    name: 'Asset Depreciation',
+    href: '/assets/depreciation',
+    icon: BoxIcon
   }
 ];
 
@@ -52,7 +107,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   const logoSection = (
     <div className="flex items-center h-16 flex-shrink-0 px-4 bg-white">
       {/* <img src="/bm.jpeg" alt="Logo" className="h-8 w-auto" /> */}
-      <h1 className="text-2xl font-bold text-red-800">BM SECURITY</h1>
+      <h1 className="text-2xl font-extrabold text-blue-950">SECUREX</h1>
     </div>
   );
 

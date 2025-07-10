@@ -1,172 +1,293 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { clients, statusColors } from '../utils/demoData';
-import { ArrowLeftIcon, UserIcon, CalendarIcon, CreditCardIcon, PhoneIcon, HomeIcon, MailIcon, AlertTriangleIcon, FileTextIcon } from 'lucide-react';
+import { clientService, Client } from '../services/clientService';
+import { Branch, getBranches, deleteBranch } from '../services/branchService';
+import serviceChargeService from '../services/serviceChargeService';
+import { Building2, Plus, Pencil, Trash2, Truck } from 'lucide-react';
+import BranchModal from '../components/Clients/BranchModal';
+import ServiceChargeModal from '../components/Clients/ServiceChargeModal';
+
 const ClientDetailPage: React.FC = () => {
-  const {
-    id
-  } = useParams<{
-    id: string;
-  }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const client = clients.find(c => c.id === id);
-  if (!client) {
-    return <div className="px-4 py-6 sm:px-6 lg:px-8">
-        <div className="text-center py-12">
-          <AlertTriangleIcon className="mx-auto h-12 w-12 text-gray-400" />
-          <h3 className="mt-2 text-lg font-medium text-gray-900">
-            Client not found
-          </h3>
-          <p className="mt-1 text-sm text-gray-500">
-            The client you're looking for doesn't exist or has been removed.
-          </p>
-          <div className="mt-6">
-            <button type="button" onClick={() => navigate('/dashboard/clients')} className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-              Back to Clients
-            </button>
-          </div>
+  const [client, setClient] = useState<Client | null>(null);
+  const [branches, setBranches] = useState<Branch[]>([]);
+  const [serviceCharges, setServiceCharges] = useState<ServiceCharge[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
+  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [isServiceChargeModalOpen, setIsServiceChargeModalOpen] = useState(false);
+  const [editingServiceCharge, setEditingServiceCharge] = useState<ServiceCharge | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [clientData, branchesData, serviceChargesData] = await Promise.all([
+        clientService.getClient(id),
+        getBranches(id),
+        serviceChargeService.getServiceCharges(Number(id))
+      ]);
+      setClient(clientData);
+      setBranches(branchesData);
+      setServiceCharges(serviceChargesData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Failed to load client data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+  }, [id]);
+
+  const handleAddBranch = () => {
+    setSelectedBranch(null);
+    setIsBranchModalOpen(true);
+  };
+
+  const handleEditBranch = (branch: Branch) => {
+    setSelectedBranch(branch);
+    setIsBranchModalOpen(true);
+  };
+
+  const handleDeleteBranch = async (branchId: string) => {
+    if (window.confirm('Are you sure you want to delete this branch?')) {
+      try {
+        await deleteBranch(id, branchId);
+        setBranches(branches.filter(b => b.id !== branchId));
+      } catch (err: any) {
+        setError(err.message || 'Failed to delete branch');
+      }
+    }
+  };
+
+  const handleAddServiceCharge = () => {
+    setEditingServiceCharge(null);
+    setIsServiceChargeModalOpen(true);
+  };
+
+  const handleEditServiceCharge = (charge: ServiceCharge) => {
+    setEditingServiceCharge(charge);
+    setIsServiceChargeModalOpen(true);
+  };
+
+  const handleDeleteServiceCharge = async (chargeId: number) => {
+    if (window.confirm('Are you sure you want to delete this service charge?')) {
+      try {
+        await serviceChargeService.deleteServiceCharge(Number(id), chargeId);
+        setServiceCharges(serviceCharges.filter(charge => charge.id !== chargeId));
+      } catch (error) {
+        console.error('Error deleting service charge:', error);
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading client details...</p>
         </div>
-      </div>;
+      </div>
+    );
   }
-  return <div className="px-4 sm:px-6 lg:px-8">
-      <div className="mb-6">
-        <button onClick={() => navigate('/dashboard/clients')} className="inline-flex items-center text-sm text-red-600 hover:text-red-900">
-          <ArrowLeftIcon className="mr-1 h-4 w-4" /> Back to Clients
-        </button>
-      </div>
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">
-              Client Information
-            </h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">
-              Personal details and policy information.
-            </p>
-          </div>
-          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[client.status]}`}>
-            {client.status.charAt(0).toUpperCase() + client.status.slice(1)}
-          </span>
-        </div>
-        <div className="border-t border-gray-200">
-          <dl>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <UserIcon className="mr-2 h-5 w-5 text-gray-400" />
-                Full name
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {client.name}
-              </dd>
-            </div>
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <MailIcon className="mr-2 h-5 w-5 text-gray-400" />
-                Email address
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {client.email}
-              </dd>
-            </div>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <PhoneIcon className="mr-2 h-5 w-5 text-gray-400" />
-                Phone number
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {client.phone}
-              </dd>
-            </div>
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <HomeIcon className="mr-2 h-5 w-5 text-gray-400" />
-                Address
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                {client.address}
-              </dd>
-            </div>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <FileTextIcon className="mr-2 h-5 w-5 text-gray-400" />
-                Policy information
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Policy Number</p>
-                      <p>{client.policyNumber}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Policy Type</p>
-                      <p>{client.policyType}</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Start Date</p>
-                      <p>{new Date(client.startDate).toLocaleDateString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">End Date</p>
-                      <p>{new Date(client.endDate).toLocaleDateString()}</p>
-                    </div>
-                  </div>
-                </div>
-              </dd>
-            </div>
-            <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <CreditCardIcon className="mr-2 h-5 w-5 text-gray-400" />
-                Financial details
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-gray-500">Premium</p>
-                      <p>
-                        KES{' '}
-                        {client.premium.toLocaleString('en-US', {
-                        minimumFractionDigits: 2
-                      })}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500">Risk Score</p>
-                      <p>{client.riskScore} / 5</p>
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Claims Filed</p>
-                    <p>{client.claims}</p>
-                  </div>
-                </div>
-              </dd>
-            </div>
-            <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-              <dt className="text-sm font-medium text-gray-500 flex items-center">
-                <CalendarIcon className="mr-2 h-5 w-5 text-gray-400" />
-                Actions
-              </dt>
-              <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                <div className="space-x-2">
-                  <button type="button" className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    Edit Client
-                  </button>
-                  <button type="button" className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    Manage Policy
-                  </button>
-                  <button type="button" className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    File Claim
-                  </button>
-                </div>
-              </dd>
-            </div>
-          </dl>
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center text-red-600">
+          <p className="text-lg font-semibold">Error</p>
+          <p>{error}</p>
+          <button
+            onClick={() => navigate('/dashboard/clients-list')}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Back to Clients
+          </button>
         </div>
       </div>
-    </div>;
+    );
+  }
+
+  if (!client) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-lg font-semibold">Client not found</p>
+          <button
+            onClick={() => navigate('/dashboard/clients-list')}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Back to Clients
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <div className="sm:flex sm:items-center">
+        <div className="sm:flex-auto">
+          <button
+            onClick={() => navigate('/dashboard/clients-list')}
+            className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
+          >
+            Back to Clients
+          </button>
+          <h1 className="text-xl font-semibold text-gray-900">{client.name}</h1>
+          <p className="mt-2 text-sm text-gray-700">
+            Account Number: {client.account_number}
+          </p>
+        </div>
+      </div>
+
+      {/* Branches Section */}
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-medium text-gray-900">Branches</h2>
+          <button
+            onClick={handleAddBranch}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Branch
+          </button>
+        </div>
+        
+        <ul className="divide-y divide-gray-200">
+          {branches.map(branch => (
+            <li key={branch.id} className="px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{branch.name}</p>
+                  <p className="text-sm text-gray-500">{branch.address}</p>
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handleEditBranch(branch)}
+                    className="text-gray-400 hover:text-gray-500"
+                  >
+                    <Pencil className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteBranch(branch.id)}
+                    className="text-gray-400 hover:text-red-500"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </button>
+                </div>
+              </div>
+            </li>
+          ))}
+          {branches.length === 0 && (
+            <li className="px-6 py-4 text-center text-sm text-gray-500">
+              No branches found
+            </li>
+          )}
+        </ul>
+      </div>
+
+      {/* Service Charges Section */}
+      <div className="mt-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Service Charges</h2>
+          <button
+            onClick={handleAddServiceCharge}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Service Charge
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Service Type
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Price
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {serviceCharges.map((charge) => (
+                <tr key={charge.id}>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {charge.service_type_name}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {Number(charge.price).toFixed(2)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleEditServiceCharge(charge)}
+                      className="text-blue-600 hover:text-blue-900 mr-4"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteServiceCharge(charge.id)}
+                      className="text-red-600 hover:text-red-900"
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Branch Modal */}
+      {isBranchModalOpen && (
+        <BranchModal
+          isOpen={isBranchModalOpen}
+          onClose={() => setIsBranchModalOpen(false)}
+          clientId={id}
+          branch={selectedBranch}
+          onSuccess={(branch) => {
+            if (selectedBranch) {
+              setBranches(branches.map(b => b.id === branch.id ? branch : b));
+            } else {
+              setBranches([...branches, branch]);
+            }
+            setIsBranchModalOpen(false);
+          }}
+        />
+      )}
+
+      {/* Service Charge Modal */}
+      {isServiceChargeModalOpen && (
+        <ServiceChargeModal
+          isOpen={isServiceChargeModalOpen}
+          onClose={() => setIsServiceChargeModalOpen(false)}
+          clientId={id}
+          editingCharge={editingServiceCharge}
+          onSuccess={fetchData}
+        />
+      )}
+
+      <button
+        onClick={() => navigate(`/dashboard/clients/${id}/service-requests`)}
+        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+      >
+        <Truck className="h-4 w-4 mr-2" />
+        Service Requests
+      </button>
+    </div>
+  );
 };
+
 export default ClientDetailPage;

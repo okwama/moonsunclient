@@ -12,23 +12,21 @@ const ClaimsPage: React.FC = () => {
   }));
   return <div className="px-4 sm:px-6 lg:px-8">
       <div className="pb-5 border-b border-gray-200">
-        <h3 className="text-lg leading-6 font-medium text-gray-900">
+        {/* <h3 className="text-lg leading-6 font-medium text-gray-900">
           Claims Management
-        </h3>
-        <p className="mt-2 max-w-4xl text-sm text-gray-500">
-          Process and manage insurance claims
-        </p>
+        </h3> */}
+        
       </div>
       <div className="mt-8">
         <div className="bg-white shadow rounded-lg">
-          <div className="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
+          {/* <div className="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
             <h3 className="text-lg leading-6 font-medium text-gray-900">
               Recent Claims
             </h3>
             <button className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700">
               File New Claim
             </button>
-          </div>
+          </div> */}
           <div className="flex flex-col">
             <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
               <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
@@ -37,13 +35,13 @@ const ClaimsPage: React.FC = () => {
                     <thead className="bg-gray-50">
                       <tr>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Client
+                          Guard
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Policy Details
+                          Premises
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Claim Amount
+                          Feedback
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Status

@@ -5,7 +5,9 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [react()],
   server: {
-    // Remove historyApiFallback as it's not needed in Vite
+    proxy: {
+      '/api': 'http://localhost:5000',
+    },
   },
   build: {
     rollupOptions: {

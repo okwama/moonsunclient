@@ -12,8 +12,23 @@ export interface RequestData {
   priority?: 'low' | 'medium' | 'high';
   status?: 'pending' | 'in_progress' | 'completed' | 'cancelled';
   myStatus?: number;
+  teamId?: number;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface Request {
+  id: string;
+  client_id: string;
+  client_name: string;
+  service_type_id: string;
+  service_type_name: string;
+  pickup_location: string;
+  dropoff_location: string;
+  status: string;
+  latitude: number;
+  longitude: number;
+  // ... other fields
 }
 
 export const requestService = {
@@ -88,6 +103,21 @@ export const requestService = {
         console.error('Error setting up request:', error.message);
       }
       throw error;
+    }
+  },
+
+  getInTransitRequests: async (): Promise<Request[]> => {
+    try {
+      console.log('Fetching in-transit requests...'); // Debug log
+      const response = await api.get<Request[]>('/requests/in-transit');
+      console.log('API Response:', response.data); // Debug log
+      return response.data;
+    } catch (error: any) {
+      console.error('Error in getInTransitRequests:', error); // Debug log
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw new Error('Failed to fetch in-transit requests');
     }
   }
 }; 

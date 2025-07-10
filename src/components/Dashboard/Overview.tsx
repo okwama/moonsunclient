@@ -2,7 +2,8 @@ import React from 'react';
 import ClientsTable from './ClientsTable';
 import RecentActivity from './RecentActivity';
 const Overview: React.FC = () => {
-  return <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+  return (
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
         <div className="bg-white shadow rounded-lg">
           <div className="px-4 py-5 border-b border-gray-200 sm:px-6">
@@ -27,6 +28,7 @@ const Overview: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 };
 export default Overview;

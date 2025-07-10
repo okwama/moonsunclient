@@ -1,6 +1,6 @@
 {
-  "name": "magic-patterns-vite-template",
-  "version": "0.0.1",
+  "name": "retail-finance-system",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,21 +10,33 @@
     "preview": "npx vite preview"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
     "@headlessui/react": "latest",
+    "@mui/material": "^7.1.1",
+    "@types/leaflet": "^1.9.19",
     "axios": "^1.6.2",
+    "cloudinary": "^1.41.3",
+    "date-fns": "^4.1.0",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.1",
+    "leaflet": "^1.9.4",
     "lucide-react": "^0.441.0",
+    "multer": "^2.0.1",
+    "multer-storage-cloudinary": "^4.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.26.2",
-    "recharts": "^2.15.3"
+    "recharts": "^2.15.3",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@types/axios": "^0.14.4",
     "@types/node": "^20.11.18",
     "@types/react": "^18.3.1",
     "@types/react-dom": "^18.3.1",
+    "@types/socket.io-client": "^1.4.36",
     "@typescript-eslint/eslint-plugin": "^5.54.0",
     "@typescript-eslint/parser": "^5.54.0",
     "@vitejs/plugin-react": "^4.2.1",
