@@ -1,66 +1,69 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { clientService, Client } from '../services/clientService';
-import { Branch, getBranches, deleteBranch } from '../services/branchService';
 import { Building2, Plus, Pencil, Trash2, Truck } from 'lucide-react';
-import BranchModal from '../components/Clients/BranchModal';
+import PaymentModal from '../components/Clients/PaymentModal';
 
 const ClientDetailsPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
-  const [branches, setBranches] = useState<Branch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
-  const [selectedBranch, setSelectedBranch] = useState<Branch | null>(null);
+  const [invoices, setInvoices] = useState<any[]>([]);
+  const [payments, setPayments] = useState<any[]>([]);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
+  const [history, setHistory] = useState<any[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
 
   const fetchData = async () => {
     if (!id) return;
-    
     try {
       setLoading(true);
       setError(null);
-      const [clientData, branchesData] = await Promise.all([
-        clientService.getClient(id),
-        getBranches(id)
+      const numericId = Number(id);
+      const [clientData, invoicesRes, paymentsRes] = await Promise.all([
+        clientService.getClient(numericId),
+        clientService.getCustomerInvoices(numericId),
+        clientService.getCustomerPayments(numericId)
       ]);
       setClient(clientData);
-      setBranches(branchesData);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-      setError('Failed to load client data');
+      setInvoices(invoicesRes.success ? invoicesRes.data : []);
+      setPayments(paymentsRes.success ? paymentsRes.data : []);
+      console.log('Fetched invoices:', invoicesRes.success ? invoicesRes.data : []);
+      console.log('Fetched payments:', paymentsRes.success ? paymentsRes.data : []);
+    } catch (error: any) {
+      console.error('Error fetching client, invoices, or payments:', error);
+      if (error?.response?.status === 404) {
+        setError('Client not found (404)');
+      } else {
+        setError(error?.message || error?.response?.data?.message || 'Failed to load client data');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
-
-  const handleAddBranch = () => {
-    setSelectedBranch(null);
-    setIsBranchModalOpen(true);
-  };
-
-  const handleEditBranch = (branch: Branch) => {
-    setSelectedBranch(branch);
-    setIsBranchModalOpen(true);
-  };
-
-  const handleDeleteBranch = async (branchId: string) => {
+  const fetchHistory = async () => {
     if (!id) return;
-    
-    if (window.confirm('Are you sure you want to delete this branch?')) {
-      try {
-        await deleteBranch(id, branchId);
-        setBranches(branches.filter(b => b.id !== branchId));
-      } catch (err: any) {
-        setError(err.message || 'Failed to delete branch');
-      }
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const data = await clientService.getClientHistory(Number(id));
+      setHistory(data);
+    } catch (err: any) {
+      setHistoryError('Failed to fetch client history');
+    } finally {
+      setHistoryLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+    fetchHistory();
+  }, [id]);
 
   if (loading) {
     return (
@@ -107,92 +110,140 @@ const ClientDetailsPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{client.name}</h1>
-        <p className="text-gray-600">{client.address}</p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{client.name || client.company_name}</h1>
+          <p className="text-gray-600">{client.address}</p>
+        </div>
+        <button
+          onClick={() => navigate(`/customers/${client.id}/ledger`)}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 mr-2"
+        >
+          View Ledger
+        </button>
+        <button
+          onClick={() => navigate(`/customers/${client.id}/payments`)}
+          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          View Payments
+        </button>
       </div>
 
-      <div className="mt-8">
-        {/* <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Branches</h2>
-          <button
-            onClick={handleAddBranch}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Branch
-          </button>
-        </div> */}
+      {/* Invoices Section */}
+      <div className="mt-12">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Invoices</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Floor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  House Number
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Invoice #</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount Paid</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {branches.map((branch) => (
-                <tr key={branch.id}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {branch.name}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {branch.floor}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {branch.apartmentNo}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEditBranch(branch)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteBranch(branch.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      Delete
-                    </button>
-                  </td>
+              {invoices.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="px-6 py-4 text-center text-sm text-gray-500">No invoices found</td>
                 </tr>
-              ))}
+              ) : (
+                invoices.map((inv: any) => {
+                  const paid = payments
+                    .filter((p: any) => p.invoice_id === inv.id && p.status === 'confirmed')
+                    .reduce((sum: number, p: any) => sum + Number(p.amount), 0);
+                  const balance = Number(inv.total_amount) - paid;
+                  return (
+                    <tr key={inv.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{inv.invoice_number || inv.id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{inv.created_at ? new Date(inv.created_at).toLocaleDateString() : ''}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{inv.so_number || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                        {inv.total_amount != null && !isNaN(Number(inv.total_amount))
+                          ? Number(inv.total_amount).toLocaleString(undefined, { style: 'currency', currency: 'KES' })
+                          : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{inv.status || '-'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-green-700 font-semibold">
+                        {paid > 0 ? paid.toLocaleString(undefined, { style: 'currency', currency: 'KES' }) : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold {balance === 0 ? 'text-green-700' : 'text-red-700'}">
+                        {balance.toLocaleString(undefined, { style: 'currency', currency: 'KES' })}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <button
+                          className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs"
+                          onClick={() => {
+                            setSelectedInvoice(inv);
+                            setIsPaymentModalOpen(true);
+                          }}
+                        >
+                          Record Payment
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Branch Modal */}
-      {isBranchModalOpen && id && (
-        <BranchModal
-          isOpen={isBranchModalOpen}
-          onClose={() => setIsBranchModalOpen(false)}
-          clientId={id}
-          branch={selectedBranch || undefined}
-          onSuccess={(branch) => {
-            if (selectedBranch) {
-              setBranches(branches.map(b => b.id === branch.id ? branch : b));
-            } else {
-              setBranches([...branches, branch]);
-            }
-            setIsBranchModalOpen(false);
-          }}
-        />
-      )}
-
-      
+      {/* Client History Section */}
+      <div className="mt-12">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">Client History</h2>
+        {historyLoading ? (
+          <div className="text-gray-600">Loading history...</div>
+        ) : historyError ? (
+          <div className="text-red-600">{historyError}</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reference ID</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Debit</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Credit</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Running Balance</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {history.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500">No history found</td>
+                  </tr>
+                ) : (
+                  history.map((entry: any) => (
+                    <tr key={entry.id}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date ? new Date(entry.date).toLocaleDateString() : ''}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.reference_type}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.reference_id}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{Number(entry.debit).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{Number(entry.credit).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">{Number(entry.running_balance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      <PaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={() => setIsPaymentModalOpen(false)}
+        invoice={selectedInvoice}
+        clientId={client.id}
+        onSuccess={fetchData}
+      />
     </div>
   );
 };

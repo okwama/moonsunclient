@@ -3,6 +3,7 @@ import { api } from './api';
 export interface Client {
   id: number;
   name: string;
+  company_name?: string;
   account_number: string;
   email: string;
   phone?: string;
@@ -23,9 +24,9 @@ export const clientService = {
   getClients: async (): Promise<Client[]> => {
     try {
       console.log('Attempting to fetch clients...');
-      const response = await api.get<Client[]>('/clients');
+      const response = await api.get<Client[]>('/clients?limit=10000');
       console.log('Clients fetched successfully:', response.data);
-      return response.data;
+      return (response.data as any).data; // <-- fix: return the array
     } catch (error: any) {
       console.error('Error in getClients:', error);
       throw error; // Let the error propagate up
@@ -79,6 +80,72 @@ export const clientService = {
         throw new Error(error.response.data.message);
       }
       throw new Error('Failed to delete client');
+    }
+  },
+
+  // Add: Get all clients with balances
+  getClientsWithBalances: async (): Promise<any[]> => {
+    try {
+      const response = await api.get('/financial/receivables/aging');
+      if (response.data && response.data.success) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error: any) {
+      console.error('Error fetching clients with balances:', error);
+      return [];
+    }
+  },
+
+  // Fetch all invoices for a customer
+  getCustomerInvoices: async (clientId: string | number) => {
+    const response = await api.get(`/clients/${clientId}/invoices`);
+    return response.data;
+  },
+
+  // Fetch customer ledger for a customer
+  getCustomerLedger: async (customerId: string | number) => {
+    // Updated to use client_ledger endpoint
+    const response = await api.get(`/clients/${customerId}/history`);
+    return response.data;
+  },
+
+  // Fetch all payments for a customer
+  getCustomerPayments: async (clientId: string | number) => {
+    const response = await api.get(`/clients/${clientId}/payments`);
+    return response.data;
+  },
+
+  // Create a new payment for a customer
+  createCustomerPayment: async (customerId: string | number, data: any) => {
+    const response = await api.post(`/customers/${customerId}/payments`, { ...data, customer_id: customerId });
+    return response.data;
+  },
+
+  // Fetch available payment accounts (cash/bank)
+  getPaymentAccounts: async () => {
+    const response = await api.get('/payroll/payment-accounts');
+    return response.data;
+  },
+
+  // Fetch all client payments (optionally filter by status)
+  getAllPayments: async (status?: string) => {
+    let url = '/payments';
+    if (status) url += `?status=${encodeURIComponent(status)}`;
+    const response = await api.get(url);
+    return response.data;
+  },
+
+  getClientHistory: async (id: number): Promise<any[]> => {
+    try {
+      const response = await api.get(`/clients/${id}/history`);
+      if (response.data && response.data.success) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error: any) {
+      console.error('Error fetching client history:', error);
+      return [];
     }
   }
 }; 

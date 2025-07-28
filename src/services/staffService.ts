@@ -12,6 +12,7 @@ export interface Staff {
   status: number;  // 1 for active, 0 for deactivated
   created_at: string;
   updated_at: string;
+  salary?: number | null;
 }
 
 export interface CreateStaffData {
@@ -91,6 +92,16 @@ export const staffService = {
       const response = await api.put(`/staff/${staffId}`, staffData);
       return response.data;
     } catch (error) {
+      throw error;
+    }
+  },
+
+  getExpiringContracts: async () => {
+    try {
+      const response = await api.get('/staff/contracts/expiring');
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching expiring contracts:', error);
       throw error;
     }
   }

@@ -1,7 +1,7 @@
 import React, { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Dialog, Transition } from '@headlessui/react';
-import { XIcon, HomeIcon, UsersIcon, CogIcon, ShieldIcon, BoxIcon, ImageIcon, InfoIcon, GroupIcon, Tally4Icon, BellIcon, FileTextIcon, BarChart3, MessageCircleIcon } from 'lucide-react';
+import { XIcon, HomeIcon, UsersIcon, CogIcon, ShieldIcon, BoxIcon, ImageIcon, InfoIcon, GroupIcon, Tally4Icon, BellIcon, FileTextIcon, BarChart3, MessageCircleIcon, DollarSign, Clock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface SidebarProps {
@@ -13,17 +13,27 @@ const navigation = [
   {
     name: 'Dashboard',
     href: '/',
-    icon: HomeIcon
+    icon: HomeIcon,
+    roles: ['admin', 'manager', 'accountant', 'user', 'stock', 'sales', 'hr']
+  },
+  // Add Clients link here
+  {
+    name: 'Clients',
+    href: '/clients-list',
+    icon: UsersIcon,
+    roles: ['admin', 'manager', 'accountant', 'user', 'sales']
   },
   {
     name: 'Chat Room',
     href: '/chat-room',
-    icon: MessageCircleIcon
+    icon: MessageCircleIcon,
+    roles: ['admin', 'manager', 'accountant', 'user', 'stock', 'sales', 'hr']
   },
   {
     name: 'Guards List',
     href: '/dashboard/staff-list',
-    icon: ImageIcon
+    icon: ImageIcon,
+    roles: ['admin', 'manager', 'hr']
   },
   // {
   //   name: 'Teams List',
@@ -33,22 +43,27 @@ const navigation = [
   {
     name: 'Premises List',
     href: '/dashboard/clients-list',
-    icon: UsersIcon
+    icon: UsersIcon,
+    roles: ['admin', 'manager', 'accountant', 'user', 'sales']
   },
   {
-    name: 'SOS',
-    href: '/dashboard/sos-list',
-    icon: UsersIcon
+    name: 'Vendors',
+    href: '/suppliers',
+    icon: UsersIcon,
+    roles: ['admin', 'manager', 'accountant']
   },
+
   {
     name: 'Reports',
     href: '/dashboard/claims',
-    icon: Tally4Icon
+    icon: Tally4Icon,
+    roles: ['admin', 'manager', 'accountant', 'user']
   },
   {
     name: 'Notice Board',
     href: '/dashboard/claims',
-    icon: BellIcon
+    icon: BellIcon,
+    roles: ['admin', 'manager', 'accountant', 'user', 'stock', 'sales', 'hr']
   },
   // {
   //   name: 'Reports',
@@ -58,42 +73,80 @@ const navigation = [
   {
     name: 'Settings',
     href: '/settings',
-    icon: CogIcon
+    icon: CogIcon,
+    roles: ['admin', 'manager']
   },
   {
     name: 'Payables',
     href: '/payables',
-    icon: BoxIcon
+    icon: BoxIcon,
+    roles: ['admin', 'manager', 'accountant']
+  },
+  {
+    name: 'Pending Payments',
+    href: '/pending-payments',
+    icon: Clock,
+    roles: ['admin', 'manager', 'accountant']
   },
   {
     name: 'Receivables',
     href: '/receivables',
-    icon: FileTextIcon
+    icon: FileTextIcon,
+    roles: ['admin', 'manager', 'accountant']
+  },
+  {
+    name: 'Assets',
+    href: '/assets',
+    icon: BoxIcon,
+    roles: ['admin', 'manager', 'accountant']
   },
   {
     name: 'Reports',
     href: '/reports/profit-loss',
-    icon: BarChart3
+    icon: BarChart3,
+    roles: ['admin', 'manager', 'accountant']
   },
   {
     name: 'Balance Sheet',
     href: '/reports/balance-sheet',
-    icon: BarChart3
+    icon: BarChart3,
+    roles: ['admin', 'manager', 'accountant']
   },
   {
     name: 'Create Invoice',
     href: '/create-invoice',
-    icon: FileTextIcon
+    icon: FileTextIcon,
+    roles: ['admin', 'manager', 'accountant']
   },
   {
     name: 'Add Asset',
     href: '/assets/add',
-    icon: BoxIcon
+    icon: BoxIcon,
+    roles: ['admin', 'manager', 'accountant']
   },
   {
     name: 'Asset Depreciation',
     href: '/assets/depreciation',
-    icon: BoxIcon
+    icon: BoxIcon,
+    roles: ['admin', 'manager', 'accountant']
+  },
+  {
+    name: 'Depreciation Management',
+    href: '/depreciation/manage',
+    icon: BoxIcon,
+    roles: ['admin', 'manager', 'accountant']
+  },
+  {
+    name: 'Equity Entries',
+    href: '/equity/entries',
+    icon: DollarSign,
+    roles: ['admin', 'manager', 'accountant']
+  },
+  {
+    name: 'Inventory Dashboard',
+    href: '/inventory-staff-dashboard',
+    icon: BoxIcon,
+    roles: ['stock', 'admin']
   }
 ];
 
@@ -159,7 +212,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               {logoSection}
               <div className="mt-5 flex-1 h-0 overflow-y-auto">
                 <nav className="px-2 space-y-1">
-                  {navigation.map(item => {
+                  {navigation
+                    .filter(item => !item.roles || item.roles.includes(user?.role || ''))
+                    .map(item => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.href;
                     return (
@@ -216,7 +271,9 @@ const Sidebar: React.FC<SidebarProps> = ({
             {logoSection}
             <div className="flex-1 flex flex-col overflow-y-auto bg-white border-r border-gray-200">
               <nav className="flex-1 px-2 py-4 space-y-1">
-                {navigation.map(item => {
+                {navigation
+                  .filter(item => !item.roles || item.roles.includes(user?.role || ''))
+                  .map(item => {
                   const Icon = item.icon;
                   const isActive = location.pathname === item.href;
                   return (

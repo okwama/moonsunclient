@@ -48,6 +48,7 @@ const AttendanceHistoryPage: React.FC = () => {
       if (staffId) params.append('staff_id', staffId);
       const res = await fetch(`/api/attendance?${params.toString()}`);
       const data = await res.json();
+      console.log('Attendance data:', data); // <-- Add this line
       setAttendance(data);
       setLoading(false);
       setPage(1); // Reset to first page on filter change

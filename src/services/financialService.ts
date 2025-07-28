@@ -11,7 +11,8 @@ import {
   CreatePaymentForm,
   CreateJournalEntryForm,
   ApiResponse,
-  PaginatedResponse
+  PaginatedResponse,
+  GeneralLedgerEntry
 } from '../types/financial';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -133,6 +134,14 @@ export const productsService = {
   }
 };
 
+// Add this: Stock Take Items Service
+export const stockTakeService = {
+  getItems: async (stock_take_id: number) => {
+    const response = await axios.get(`${API_BASE_URL}/financial/stock-take/${stock_take_id}/items`);
+    return response.data;
+  },
+};
+
 // Dashboard Service
 export const dashboardService = {
   getStats: async (): Promise<ApiResponse<DashboardStats>> => {
@@ -227,6 +236,23 @@ export const salesOrdersService = {
   delete: async (id: number): Promise<ApiResponse<void>> => {
     const response = await axios.delete(`${API_BASE_URL}/financial/sales-orders/${id}`);
     return response.data;
+  },
+
+  assignRider: async (id: number, rider_id: number) => {
+    const response = await axios.patch(`${API_BASE_URL}/financial/sales-orders/${id}`, { riderId: rider_id });
+    return response.data;
+  },
+  receiveBackToStock: async (id: number) => {
+    const response = await axios.post(`${API_BASE_URL}/financial/sales-orders/${id}/receive-back`);
+    return response.data;
+  }
+};
+
+// Sales Order Items Service
+export const salesOrderItemsService = {
+  getBySalesOrderId: async (salesOrderId: number) => {
+    const response = await axios.get(`${API_BASE_URL}/financial/sales-orders/${salesOrderId}/items`);
+    return response.data;
   }
 };
 
@@ -315,6 +341,57 @@ export const journalEntriesService = {
 
   post: async (id: number): Promise<ApiResponse<void>> => {
     const response = await axios.patch(`${API_BASE_URL}/financial/journal-entries/${id}/post`);
+    return response.data;
+  }
+}; 
+
+export const generalLedgerService = {
+  getEntries: async (): Promise<ApiResponse<GeneralLedgerEntry[]>> => {
+    const response = await axios.get(`${API_BASE_URL}/financial/general-ledger`);
+    return response.data;
+  }
+}; 
+
+export const inventoryTransactionsService = {
+  getAll: async (params: any = {}): Promise<ApiResponse<any[]> & { pagination?: { totalPages: number; page: number; limit: number; total: number } }> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) query.append(key, String(value));
+    });
+    const response = await axios.get(`${API_BASE_URL}/financial/inventory-transactions?${query.toString()}`);
+    return response.data;
+  }
+}; 
+
+export const inventoryAsOfService = {
+  getAll: async (params: { date: string, store_id?: number|string }) => {
+    const query = new URLSearchParams();
+    query.append('date', params.date);
+    if (params.store_id) query.append('store_id', String(params.store_id));
+    const response = await axios.get(`${API_BASE_URL}/financial/inventory-as-of?${query.toString()}`);
+    return response.data;
+  }
+}; 
+
+export const stockTransferService = {
+  transfer: async (data: {
+    from_store_id: string | number;
+    to_store_id: string | number;
+    transfer_date: string;
+    staff_id: number;
+    reference?: string;
+    notes?: string;
+    items: { product_id: string | number; quantity: number }[];
+  }): Promise<ApiResponse<any>> => {
+    const response = await axios.post(`${API_BASE_URL}/financial/stock-transfer`, data);
+    return response.data;
+  },
+  getHistory: async (params: any = {}): Promise<ApiResponse<any[]> & { pagination?: { totalPages: number; page: number; limit: number; total: number } }> => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) query.append(key, String(value));
+    });
+    const response = await axios.get(`${API_BASE_URL}/financial/transfer-history?${query.toString()}`);
     return response.data;
   }
 }; 

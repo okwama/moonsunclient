@@ -87,14 +87,11 @@ const ProfitLossReportPage: React.FC = () => {
     }
   };
 
-  const formatCurrency = (amount: number) => {
+  const number_format = (amount: number) => {
     if (amount === null || amount === undefined || isNaN(amount)) {
-      return '$0.00';
+      return '0.00';
     }
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const formatPercentage = (value: number) => {
@@ -125,26 +122,26 @@ const ProfitLossReportPage: React.FC = () => {
       ['Profit and Loss Report', getPeriodLabel()],
       [''],
       ['Revenue'],
-      ['Sales Revenue', formatCurrency(reportData.revenue.sales_revenue)],
-      ['Other Income', formatCurrency(reportData.revenue.other_income)],
-      ['Total Revenue', formatCurrency(reportData.revenue.total_revenue)],
+      ['Sales Revenue', number_format(reportData.revenue.sales_revenue)],
+      ['Other Income', number_format(reportData.revenue.other_income)],
+      ['Total Revenue', number_format(reportData.revenue.total_revenue)],
       [''],
-      ['Cost of Goods Sold', formatCurrency(reportData.expenses.cost_of_goods_sold)],
-      ['Gross Profit', formatCurrency(reportData.gross_profit)],
+      ['Cost of Goods Sold', number_format(reportData.expenses.cost_of_goods_sold)],
+      ['Gross Profit', number_format(reportData.gross_profit)],
       ['Gross Margin', formatPercentage(reportData.gross_margin)],
       [''],
       ['Operating Expenses'],
-      ['Advertising Expense', formatCurrency(reportData.expenses.advertising_expense)],
-      ['Rent Expense', formatCurrency(reportData.expenses.rent_expense)],
-      ['Utilities Expense', formatCurrency(reportData.expenses.utilities_expense)],
-      ['Wages Expense', formatCurrency(reportData.expenses.wages_expense)],
-      ['Insurance Expense', formatCurrency(reportData.expenses.insurance_expense)],
-      ['Office Supplies', formatCurrency(reportData.expenses.office_supplies)],
-      ['Depreciation Expense', formatCurrency(reportData.expenses.depreciation_expense)],
-      ['Miscellaneous Expense', formatCurrency(reportData.expenses.miscellaneous_expense)],
-      ['Total Operating Expenses', formatCurrency(reportData.expenses.total_expenses)],
+      ['Advertising Expense', number_format(reportData.expenses.advertising_expense)],
+      ['Rent Expense', number_format(reportData.expenses.rent_expense)],
+      ['Utilities Expense', number_format(reportData.expenses.utilities_expense)],
+      ['Wages Expense', number_format(reportData.expenses.wages_expense)],
+      ['Insurance Expense', number_format(reportData.expenses.insurance_expense)],
+      ['Office Supplies', number_format(reportData.expenses.office_supplies)],
+      ['Depreciation Expense', number_format(reportData.expenses.depreciation_expense)],
+      ['Miscellaneous Expense', number_format(reportData.expenses.miscellaneous_expense)],
+      ['Total Operating Expenses', number_format(reportData.expenses.total_expenses)],
       [''],
-      ['Net Profit', formatCurrency(reportData.net_profit)],
+      ['Net Profit', number_format(reportData.net_profit)],
       ['Net Margin', formatPercentage(reportData.net_margin)]
     ].map(row => row.join(',')).join('\n');
 
@@ -242,7 +239,7 @@ const ProfitLossReportPage: React.FC = () => {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(reportData.revenue.total_revenue)}
+                      {number_format(reportData.revenue.total_revenue)}
                     </p>
                   </div>
                 </div>
@@ -256,7 +253,7 @@ const ProfitLossReportPage: React.FC = () => {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Gross Profit</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(reportData.gross_profit)}
+                      {number_format(reportData.gross_profit)}
                     </p>
                   </div>
                 </div>
@@ -270,7 +267,7 @@ const ProfitLossReportPage: React.FC = () => {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Total Expenses</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(reportData.expenses.total_expenses)}
+                      {number_format(reportData.expenses.total_expenses)}
                     </p>
                   </div>
                 </div>
@@ -284,7 +281,7 @@ const ProfitLossReportPage: React.FC = () => {
                   <div className="ml-4">
                     <p className="text-sm font-medium text-gray-600">Net Profit</p>
                     <p className={`text-2xl font-bold ${reportData.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {formatCurrency(reportData.net_profit)}
+                      {number_format(reportData.net_profit)}
                     </p>
                   </div>
                 </div>
@@ -304,15 +301,15 @@ const ProfitLossReportPage: React.FC = () => {
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Sales Revenue</span>
-                        <span className="font-medium">{formatCurrency(reportData.revenue.sales_revenue)}</span>
+                        <span className="font-medium">{number_format(reportData.revenue.sales_revenue)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Other Income</span>
-                        <span className="font-medium">{formatCurrency(reportData.revenue.other_income)}</span>
+                        <span className="font-medium">{number_format(reportData.revenue.other_income)}</span>
                       </div>
                       <div className="flex justify-between items-center border-t pt-3">
                         <span className="font-semibold text-gray-900">Total Revenue</span>
-                        <span className="font-bold text-gray-900">{formatCurrency(reportData.revenue.total_revenue)}</span>
+                        <span className="font-bold text-gray-900">{number_format(reportData.revenue.total_revenue)}</span>
                       </div>
                     </div>
                   </div>
@@ -322,7 +319,7 @@ const ProfitLossReportPage: React.FC = () => {
                     <h4 className="text-lg font-medium text-gray-900 mb-4">Cost of Goods Sold</h4>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-600">Cost of Goods Sold</span>
-                      <span className="font-medium">{formatCurrency(reportData.expenses.cost_of_goods_sold)}</span>
+                      <span className="font-medium">{number_format(reportData.expenses.cost_of_goods_sold)}</span>
                     </div>
                   </div>
 
@@ -330,7 +327,7 @@ const ProfitLossReportPage: React.FC = () => {
                   <div className="border-t pt-4">
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-gray-900">Gross Profit</span>
-                      <span className="font-bold text-gray-900">{formatCurrency(reportData.gross_profit)}</span>
+                      <span className="font-bold text-gray-900">{number_format(reportData.gross_profit)}</span>
                     </div>
                     <div className="flex justify-between items-center mt-1">
                       <span className="text-sm text-gray-500">Gross Margin</span>
@@ -346,7 +343,7 @@ const ProfitLossReportPage: React.FC = () => {
                         reportData.expenses.operating_expenses_breakdown.map((exp) => (
                           <div key={exp.account_code} className="flex justify-between items-center">
                             <span className="text-gray-600">{exp.account_name} ({exp.account_code})</span>
-                            <span className="font-medium">{formatCurrency(exp.balance)}</span>
+                            <span className="font-medium">{number_format(exp.balance)}</span>
                           </div>
                         ))
                       ) : (
@@ -354,7 +351,7 @@ const ProfitLossReportPage: React.FC = () => {
                       )}
                       <div className="flex justify-between items-center border-t pt-3">
                         <span className="font-semibold text-gray-900">Total Operating Expenses</span>
-                        <span className="font-bold text-gray-900">{formatCurrency(reportData.expenses.total_operating_expenses)}</span>
+                        <span className="font-bold text-gray-900">{number_format(reportData.expenses.total_operating_expenses)}</span>
                       </div>
                     </div>
                   </div>
@@ -364,7 +361,7 @@ const ProfitLossReportPage: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <span className="font-bold text-lg text-gray-900">Net Profit</span>
                       <span className={`font-bold text-lg ${reportData.net_profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {formatCurrency(reportData.net_profit)}
+                        {number_format(reportData.net_profit)}
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-1">

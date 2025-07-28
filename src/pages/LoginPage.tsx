@@ -33,8 +33,21 @@ const LoginPage: React.FC = () => {
       if (response.data.token) {
         console.log('Login successful, setting auth token');
         login(response.data.token, response.data.user);
-        const from = (location.state as any)?.from?.pathname || '/';
-        navigate(from, { replace: true });
+        if (response.data.user.role === 'sales') {
+          navigate('/sales-dashboard', { replace: true });
+        } else if (response.data.user.role === 'hr') {
+          navigate('/hr-dashboard', { replace: true });
+        } else if (response.data.user.role === 'stock') {
+          navigate('/inventory-staff-dashboard', { replace: true });
+        } else {
+          const from = (location.state as any)?.from?.pathname || '/';
+          // Prevent redirecting to '/' (FinancialDashboard) for sales role
+          if (response.data.user.role === 'sales' && (!from || from === '/')) {
+            navigate('/sales-dashboard', { replace: true });
+          } else {
+            navigate(from, { replace: true });
+          }
+        }
       } else {
         console.error('Login response missing token');
         setError('Invalid response from server');
@@ -77,8 +90,8 @@ const LoginPage: React.FC = () => {
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <div className="flex justify-center">
             <img 
-              src="/securex.png" 
-              alt="SWISS LIFE" 
+              src="/woosh.jpg" 
+              alt="WOOSH" 
               className="h-50 object-contain"
             />
           </div>
@@ -150,7 +163,7 @@ const LoginPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                  className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-yellow-500 hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                 >
                   {isLoading ? 'Signing in...' : 'Sign in'}
                 </button>

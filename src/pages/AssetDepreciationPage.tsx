@@ -53,7 +53,7 @@ const AssetDepreciationPage: React.FC = () => {
 
   const fetchDepreciationAccounts = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/financial/accounts?account_type=17`);
+      const res = await axios.get(`${API_BASE_URL}/financial/depreciation-accounts`);
       if (res.data.success) {
         setDepreciationAccounts(res.data.data);
       }

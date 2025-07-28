@@ -15,7 +15,7 @@ export interface ChartOfAccount {
   id: number;
   account_code: string;
   account_name: string;
-  account_type: 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
+  account_type: number; // 1=asset, 2=liability, 13=equity, 17=depreciation, etc.
   parent_account_id?: number;
   description?: string;
   is_active: boolean;
@@ -54,6 +54,8 @@ export interface Customer {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  name?: string; // Added for Clients table compatibility
+  tax_pin?: string; // Added for Clients table compatibility
 }
 
 export interface Product {
@@ -108,7 +110,7 @@ export interface SalesOrder {
   customer_id: number;
   order_date: string;
   expected_delivery_date?: string;
-  status: 'draft' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'draft' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'in payment' | 'paid';
   subtotal: number;
   tax_amount: number;
   total_amount: number;
@@ -119,6 +121,15 @@ export interface SalesOrder {
   customer?: Customer;
   items?: SalesOrderItem[];
   created_by_user?: User;
+  customer_name?: string;
+  country_id?: number;
+  countryId?: number;
+  country_name?: string;
+  region_id?: number;
+  region_name?: string;
+  my_status?: number;
+  rider_name?: string;
+  rider_contact?: string;
 }
 
 export interface SalesOrderItem {
@@ -130,6 +141,8 @@ export interface SalesOrderItem {
   total_price: number;
   shipped_quantity: number;
   product?: Product;
+  net_price?: number;
+  tax_amount?: number;
 }
 
 export interface Receipt {
@@ -381,4 +394,31 @@ export interface Asset {
   created_at: string;
   updated_at: string;
   asset_type_name?: string;
+}
+
+export interface GeneralLedgerEntry {
+  id: number;
+  date: string;
+  account_code: string;
+  account_name: string;
+  description?: string;
+  reference?: string;
+  debit: number;
+  credit: number;
+  balance: number;
+}
+
+export interface StockTransferItem {
+  product_id: string | number;
+  quantity: number;
+}
+
+export interface StockTransferForm {
+  from_store_id: string | number;
+  to_store_id: string | number;
+  transfer_date: string;
+  staff_id: number;
+  reference?: string;
+  notes?: string;
+  items: StockTransferItem[];
 } 

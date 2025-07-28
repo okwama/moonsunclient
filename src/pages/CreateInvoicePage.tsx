@@ -108,16 +108,23 @@ const CreateInvoicePage: React.FC = () => {
     setItems(updatedItems);
   };
 
+  // Calculate net and tax from tax-inclusive price
+  const TAX_RATE = 0.16;
+  const TAX_DIVISOR = 1 + TAX_RATE;
+
+  const calculateNet = (price: number) => price / TAX_DIVISOR;
+  const calculateTax = (price: number) => price - calculateNet(price);
+
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + item.total_price, 0);
+    return items.reduce((sum, item) => sum + calculateNet(item.total_price), 0);
   };
 
-  const calculateTax = () => {
-    return calculateSubtotal() * 0.1; // 10% tax
+  const calculateTaxTotal = () => {
+    return items.reduce((sum, item) => sum + calculateTax(item.total_price), 0);
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
+    return items.reduce((sum, item) => sum + item.total_price, 0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,7 +192,7 @@ const CreateInvoicePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4">
+    <div className="max-w-7xl mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Create Customer Invoice</h1>
       </div>
@@ -272,8 +279,8 @@ const CreateInvoicePage: React.FC = () => {
           ) : (
             <div className="space-y-4">
               {items.map((item, index) => (
-                <div key={index} className="grid grid-cols-12 gap-4 items-center p-4 border border-gray-200 rounded-lg">
-                  <div className="col-span-4">
+                <div key={index} className="grid grid-cols-7 gap-4 items-center p-4 border border-gray-200 rounded-lg">
+                  <div className="col-span-2">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Product *
                     </label>
@@ -292,7 +299,7 @@ const CreateInvoicePage: React.FC = () => {
                     </select>
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Quantity *
                     </label>
@@ -306,7 +313,7 @@ const CreateInvoicePage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Unit Price *
                     </label>
@@ -321,7 +328,25 @@ const CreateInvoicePage: React.FC = () => {
                     />
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Net Amount
+                    </label>
+                    <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50">
+                      ${calculateNet(item.total_price).toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="col-span-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tax
+                    </label>
+                    <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50">
+                      ${calculateTax(item.total_price).toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="col-span-1">
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Total
                     </label>
@@ -330,7 +355,7 @@ const CreateInvoicePage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="col-span-2">
+                  <div className="col-span-1 flex items-center justify-center h-full">
                     <button
                       type="button"
                       onClick={() => removeItem(index)}
@@ -362,12 +387,12 @@ const CreateInvoicePage: React.FC = () => {
         {/* Totals */}
         <div className="bg-gray-50 p-4 rounded-lg mb-6">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-gray-600">Subtotal:</span>
+            <span className="text-gray-600">Subtotal (Net):</span>
             <span className="font-medium">${calculateSubtotal().toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center mb-2">
-            <span className="text-gray-600">Tax (10%):</span>
-            <span className="font-medium">${calculateTax().toFixed(2)}</span>
+            <span className="text-gray-600">Tax (16%):</span>
+            <span className="font-medium">${calculateTaxTotal().toFixed(2)}</span>
           </div>
           <div className="flex justify-between items-center text-lg font-bold border-t pt-2">
             <span>Total:</span>

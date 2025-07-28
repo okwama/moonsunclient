@@ -10,292 +10,314 @@ import {
   CreditCard,
   Building,
   BarChart3,
-  BoxIcon
+  BoxIcon,
+  Clock,
+  Plus,
+  ChevronRight,
+  Activity,
+  Zap,
+  Settings,
+  Bell,
+  Search,
+  Filter,
+  Notebook
 } from 'lucide-react';
 import { dashboardService } from '../services/financialService';
-import { DashboardStats } from '../types/financial';
-import { Link } from 'react-router-dom';
+import type { DashboardStats } from '../types/financial';
+import { useNavigate } from 'react-router-dom';
 
-const FinancialDashboardPage: React.FC = () => {
+const FinancialDashboardPage = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchDashboardStats();
+    setLoading(true);
+    setError(null);
+    dashboardService.getStats()
+      .then(res => {
+        if (res.success && res.data) {
+          setStats(res.data);
+        } else {
+          setError(res.error || 'Failed to load dashboard stats');
+        }
+      })
+      .catch(() => setError('Failed to load dashboard stats'))
+      .finally(() => setLoading(false));
   }, []);
 
-  const fetchDashboardStats = async () => {
-    try {
-      setLoading(true);
-      const response = await dashboardService.getStats();
-      if (response.success && response.data) {
-        setStats(response.data);
-      } else {
-        setError(response.error || 'Failed to fetch dashboard stats');
-      }
-    } catch (err) {
-      setError('Failed to fetch dashboard stats');
-      console.error('Error fetching dashboard stats:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+  const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-KE', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'KES',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(amount);
   };
 
+  const quickActions = [
+    { name: 'New Purchase', icon: ShoppingCart, color: 'blue', href: '/financial/purchase-order' },
+    { name: 'Create Invoice', icon: FileText, color: 'green', href: '/create-invoice' },
+    { name: 'Add Expense', icon: DollarSign, color: 'red', href: '/add-expense' },
+    { name: 'Chat Room', icon: Notebook, color: 'purple', href: '/chat-room' },
+    { name: 'Equity Entries', icon: DollarSign, color: 'emerald', href: '/equity/entries', featured: true },
+    { name: 'Journal Entries', icon: FileText, color: 'amber', href: '/journal-entries', featured: true }
+  ];
+
+  const navigationCards = [
+    { title: 'Chart of Accounts', desc: 'Manage accounting structure', icon: BarChart3, color: 'indigo', href: '/chart-of-accounts' },
+    { title: 'Financial Reports', desc: 'View financial reporting', icon: BarChart3, color: 'blue', href: '/reports' },
+    { title: 'Vendors', desc: 'Manage vendor information', icon: Building, color: 'slate', href: '/suppliers' },
+    { title: 'Customers', desc: 'Manage customer database', icon: Users, color: 'green', href: '/clients' },
+    { title: 'Store Inventory', desc: 'Track inventory levels', icon: Package, color: 'purple', href: '/store-inventory' },
+    { title: 'Assets', desc: 'View and manage all assets', icon: BoxIcon, color: 'teal', href: '/assets' },
+    { title: 'Expenses', desc: 'View all expenses', icon: DollarSign, color: 'red', href: '/expenses' },
+    { title: 'Products', desc: 'View and manage all products', icon: BoxIcon, color: 'teal', href: '/products' },
+    { title: 'Purchase Orders', desc: 'Manage purchase orders', icon: ShoppingCart, color: 'orange', href: '/purchase-orders' },
+    { title: 'Sales Orders', desc: 'Manage sales orders', icon: DollarSign, color: 'red', href: '/all-orders' },
+    { title: 'Receipts', desc: 'Record customer payments', icon: CreditCard, color: 'yellow', href: '/receipts' },
+    { title: 'Payroll Management', desc: 'Record staff payroll', icon: CreditCard, color: 'yellow', href: '/payroll-management' }
+  ];
+
+  const financialCards = [
+    { title: 'Payables', desc: 'View & manage supplier payables', emoji: '💸', href: '/payables', color: 'rose' },
+    { title: 'Receivables', desc: 'View & manage customer receivables', emoji: '💰', href: '/receivables', color: 'emerald' },
+    { title: 'Pending Payments', desc: 'Review & confirm payments', emoji: '⏰', href: '/pending-payments', color: 'amber' },
+    { title: 'Cash & Equivalents', desc: 'View all cash accounts', emoji: '🏦', href: '/cash-equivalents', color: 'blue' }
+  ];
+
+  // const managementTools = [
+  //   // { title: 'Asset Depreciation', icon: BoxIcon, href: '/assets/depreciation', color: 'blue' },
+  //   // { title: 'Products', icon: Package, href: '/products', color: 'purple' },
+  //   // { title: 'Manage Equity', icon: DollarSign, href: '/equity/manage', color: 'blue' },
+  //   // { title: 'Payroll Management', icon: Users, href: '/payroll-management', color: 'green' }
+  // ];
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-red-600 text-xl mb-4">{error}</div>
-          <button 
-            onClick={fetchDashboardStats}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-          >
-            Retry
-          </button>
+          <p className="text-red-600 font-semibold">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Modern Header */}
+      <div className="bg-white shadow-sm border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Financial Dashboard</h1>
-              <p className="text-gray-600 mt-1">Manage your retail business finances</p>
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                  Financial Dashboard
+                </h1>
+              </div>
             </div>
-            <div className="flex space-x-3">
-              <Link
-                to="/reports/profit-loss"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-              >
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Reports
-              </Link>
-              <Link
-                to="/assets/depreciation"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-              >
-                <BoxIcon className="w-4 h-4 mr-2" />
-                Asset Depreciation
-              </Link>
-              <Link
-                to="/equity/manage"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-              >
-                <DollarSign className="w-4 h-4 mr-2" />
-                Manage Equity
-              </Link>
-              <Link
-                to="/all-orders"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
-              >
-                <FileText className="w-4 h-4 mr-2" />
-                All Orders
-              </Link>
+            
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                <Search className="w-5 h-5 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  className="pl-10 pr-4 py-2 w-64 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                <Bell className="w-5 h-5" />
+              </button>
+              <button 
+              onClick={() => navigate('/settings')}
+              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+                <Settings className="w-5 h-5" />
+              </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
-          {/* Total Sales */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Sales</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats ? formatCurrency(stats.totalSales) : '$0.00'}
-                </p>
-              </div>
-            </div>
+        {/* Management Tools Bar */}
+        {/* <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-800">Management Tools</h2>
+            <Filter className="w-5 h-5 text-slate-400" />
           </div>
-
-          {/* Total Purchases */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <ShoppingCart className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Purchases</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats ? formatCurrency(stats.totalPurchases) : '$0.00'}
-                </p>
-              </div>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {managementTools.map((tool, index) => (
+              <button
+                key={index}
+                onClick={() => window.location.href = tool.href}
+                className={`group flex items-center justify-between p-4 bg-white rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-all duration-200 hover:border-${tool.color}-300`}
+              >
+                <div className="flex items-center space-x-3">
+                  <div className={`p-2 bg-${tool.color}-100 rounded-lg group-hover:bg-${tool.color}-200 transition-colors`}>
+                    <tool.icon className={`w-5 h-5 text-${tool.color}-600`} />
+                  </div>
+                  <span className="font-medium text-slate-700 group-hover:text-slate-900">{tool.title}</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
+              </button>
+            ))}
           </div>
+        </div> */}
 
-          {/* Receivables */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <CreditCard className="w-6 h-6 text-yellow-600" />
+        {/* Stats Overview */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Financial Overview</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-green-100 rounded-xl">
+                  <DollarSign className="w-6 h-6 text-green-600" />
+                </div>
+                <TrendingUp className="w-5 h-5 text-green-500" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Receivables</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats ? formatCurrency(stats.totalReceivables) : '$0.00'}
-                </p>
-              </div>
+              <p className="text-sm font-medium text-slate-600 mb-1">Total Sales</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {stats ? formatCurrency(stats.totalSales) : '$0.00'}
+              </p>
             </div>
-          </div>
 
-          {/* Payables */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <FileText className="w-6 h-6 text-red-600" />
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-blue-100 rounded-xl">
+                  <ShoppingCart className="w-6 h-6 text-blue-600" />
+                </div>
+                <Activity className="w-5 h-5 text-blue-500" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Payables</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats ? formatCurrency(stats.totalPayables) : '$0.00'}
-                </p>
-              </div>
+              <p className="text-sm font-medium text-slate-600 mb-1">Total Purchases</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {stats ? formatCurrency(stats.totalPurchases) : '$0.00'}
+              </p>
             </div>
-          </div>
 
-          {/* Total Assets */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <Building className="w-6 h-6 text-gray-600" />
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-amber-100 rounded-xl">
+                  <CreditCard className="w-6 h-6 text-amber-600" />
+                </div>
+                <Clock className="w-5 h-5 text-amber-500" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Assets</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats ? formatCurrency(stats.totalAssets) : '$0.00'}
-                </p>
-              </div>
+              <p className="text-sm font-medium text-slate-600 mb-1">Receivables</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {stats ? formatCurrency(stats.totalReceivables) : '$0.00'}
+              </p>
             </div>
-          </div>
 
-          {/* Low Stock Items */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <AlertTriangle className="w-6 h-6 text-orange-600" />
+            <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-red-100 rounded-xl">
+                  <FileText className="w-6 h-6 text-red-600" />
+                </div>
+                <AlertTriangle className="w-5 h-5 text-red-500" />
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Low Stock</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats ? stats.lowStockItems : 0}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Pending Orders */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Package className="w-6 h-6 text-purple-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Pending Orders</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {stats ? stats.pendingOrders : 0}
-                </p>
-              </div>
+              <p className="text-sm font-medium text-slate-600 mb-1">Payables</p>
+              <p className="text-2xl font-bold text-slate-900">
+                {stats ? formatCurrency(stats.totalPayables) : '$0.00'}
+              </p>
             </div>
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions & Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Quick Actions</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-800">Quick Actions</h3>
+                <Zap className="w-5 h-5 text-amber-500" />
+              </div>
             </div>
             <div className="p-6">
               <div className="grid grid-cols-2 gap-4">
-                <button 
-                  onClick={() => window.location.href = '/financial/purchase-order'}
-                  className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <ShoppingCart className="w-5 h-5 text-blue-600 mr-2" />
-                  <span className="text-sm font-medium">New Purchase</span>
-                </button>
-                <button 
-                  onClick={() => window.location.href = '/create-invoice'}
-                  className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <FileText className="w-5 h-5 text-green-600 mr-2" />
-                  <span className="text-sm font-medium">Create Invoice</span>
-                </button>
-              
-                <button 
-                  onClick={() => window.location.href = '/add-expense'}
-                  className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <DollarSign className="w-5 h-5 text-red-600 mr-2" />
-                  <span className="text-sm font-medium">Add Expense</span>
-                </button>
-                 
-                <button 
-                  onClick={() => window.location.href = '/assets/add'}
-                  className="flex items-center justify-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <Building className="w-5 h-5 text-gray-600 mr-2" />
-                  <span className="text-sm font-medium">Add Asset</span>
-                </button>
+                {quickActions.map((action, index) => (
+                  <button 
+                    key={index}
+                    onClick={() => window.location.href = action.href}
+                    className={`group flex flex-col items-center justify-center p-4 rounded-xl transition-all duration-200 ${
+                      action.featured 
+                        ? `border-2 border-${action.color}-200 bg-${action.color}-50 hover:bg-${action.color}-100 hover:border-${action.color}-300`
+                        : 'border border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg mb-2 ${
+                      action.featured 
+                        ? `bg-${action.color}-200 group-hover:bg-${action.color}-300`
+                        : `bg-${action.color}-100 group-hover:bg-${action.color}-200`
+                    }`}>
+                      <action.icon className={`w-5 h-5 text-${action.color}-600`} />
+                    </div>
+                    <span className={`text-sm font-medium text-center ${
+                      action.featured ? `text-${action.color}-700` : 'text-slate-700'
+                    }`}>
+                      {action.name}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
           {/* Recent Activity */}
-          <div className="bg-white rounded-lg shadow">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Recent Activity</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200">
+            <div className="px-6 py-4 border-b border-slate-100">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-800">Recent Activity</h3>
+                <Activity className="w-5 h-5 text-blue-500" />
+              </div>
             </div>
             <div className="p-6">
               <div className="space-y-4">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mr-3"></div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">New sale recorded</p>
-                    <p className="text-xs text-gray-500">2 minutes ago</p>
+                    <p className="text-sm font-medium text-slate-900">New sale recorded</p>
+                    <p className="text-xs text-slate-500">Invoice #INV-2024-001 • $2,450.00</p>
+                    <p className="text-xs text-slate-400">2 minutes ago</p>
                   </div>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Purchase order created</p>
-                    <p className="text-xs text-gray-500">15 minutes ago</p>
+                    <p className="text-sm font-medium text-slate-900">Purchase order created</p>
+                    <p className="text-xs text-slate-500">PO #PO-2024-032 • Supplier ABC</p>
+                    <p className="text-xs text-slate-400">15 minutes ago</p>
                   </div>
                 </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-yellow-500 rounded-full mr-3"></div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-amber-500 rounded-full mt-2 flex-shrink-0"></div>
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">Payment received</p>
-                    <p className="text-xs text-gray-500">1 hour ago</p>
+                    <p className="text-sm font-medium text-slate-900">Payment received</p>
+                    <p className="text-xs text-slate-500">Customer XYZ • $1,200.00</p>
+                    <p className="text-xs text-slate-400">1 hour ago</p>
+                  </div>
+                </div>
+                <div className="flex items-start space-x-3">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full mt-2 flex-shrink-0"></div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-slate-900">Inventory update</p>
+                    <p className="text-xs text-slate-500">12 items marked as low stock</p>
+                    <p className="text-xs text-slate-400">2 hours ago</p>
                   </div>
                 </div>
               </div>
@@ -303,169 +325,57 @@ const FinancialDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Navigation Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {/* Chart of Accounts */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-indigo-100 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-indigo-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Chart of Accounts</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">Manage your accounting structure and account codes</p>
-            <div className="flex items-center text-sm text-indigo-600">
-              <span>View accounts</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
+        {/* Financial Management */}
+        <div className="mb-8">
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Financial Management</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {financialCards.map((card, index) => (
+              <button
+                key={index}
+                onClick={() => window.location.href = card.href}
+                className={`group bg-white rounded-xl shadow-sm border border-slate-200 p-6 text-center hover:shadow-md hover:border-${card.color}-300 transition-all duration-200`}
+              >
+                <div className="text-4xl mb-3">{card.emoji}</div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">{card.title}</h3>
+                <p className="text-sm text-slate-600 mb-3">{card.desc}</p>
+                <div className="flex items-center justify-center text-sm text-slate-500 group-hover:text-slate-700">
+                  <span>View details</span>
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </div>
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Balance Sheet Report */}
-          <div 
-            onClick={() => window.location.href = '/reports/balance-sheet'}
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
-          >
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <BarChart3 className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Balance Sheet</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">View your assets, liabilities, and equity at a glance</p>
-            <div className="flex items-center text-sm text-blue-600">
-              <span>View balance sheet</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
+        {/* Main Navigation */}
+        <div>
+          <h2 className="text-lg font-semibold text-slate-800 mb-4">Business Operations</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {navigationCards.map((card, index) => (
+              <button
+                key={index}
+                onClick={() => window.location.href = card.href}
+                className={`group bg-white rounded-xl shadow-sm border border-slate-200 p-6 hover:shadow-md hover:border-${card.color}-300 transition-all duration-200 text-left`}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className={`p-3 bg-${card.color}-100 rounded-xl group-hover:bg-${card.color}-200 transition-colors`}>
+                    <card.icon className={`w-6 h-6 text-${card.color}-600`} />
+                  </div>
+                  <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">{card.title}</h3>
+                <p className="text-sm text-slate-600 mb-4">{card.desc}</p>
+                <div className={`flex items-center text-sm text-${card.color}-600 font-medium`}>
+                  <span>Access now</span>
+                  <TrendingUp className="w-4 h-4 ml-1" />
+                </div>
+              </button>
+            ))}
           </div>
-
-          {/* Suppliers */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Building className="w-6 h-6 text-blue-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Suppliers</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">Manage your supplier relationships and information</p>
-            <div className="flex items-center text-sm text-blue-600">
-              <span>View suppliers</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-
-          {/* Customers */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Users className="w-6 h-6 text-green-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Customers</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">Manage your customer database and relationships</p>
-            <div className="flex items-center text-sm text-green-600">
-              <span>View customers</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-
-          {/* Inventory */}
-          <div 
-            onClick={() => window.location.href = '/store-inventory'}
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
-          >
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Package className="w-6 h-6 text-purple-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Store Inventory</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">Track inventory levels across all stores</p>
-            <div className="flex items-center text-sm text-purple-600">
-              <span>View inventory</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-
-          {/* Purchase Orders */}
-          <div 
-            onClick={() => window.location.href = '/purchase-orders'}
-            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer"
-          >
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <ShoppingCart className="w-6 h-6 text-orange-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Purchase Orders</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">Create and manage purchase orders from suppliers</p>
-            <div className="flex items-center text-sm text-orange-600">
-              <span>View orders</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-
-          {/* Sales Orders */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <DollarSign className="w-6 h-6 text-red-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Sales Orders</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">Create and manage sales orders for customers</p>
-            <div className="flex items-center text-sm text-red-600">
-              <span>View orders</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-
-          {/* Receipts */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <CreditCard className="w-6 h-6 text-yellow-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Receipts</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">Record customer payments and receipts</p>
-            <div className="flex items-center text-sm text-yellow-600">
-              <span>View receipts</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-
-          {/* Payments */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow cursor-pointer">
-            <div className="flex items-center mb-4">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <FileText className="w-6 h-6 text-gray-600" />
-              </div>
-              <h3 className="ml-3 text-lg font-medium text-gray-900">Payments</h3>
-            </div>
-            <p className="text-gray-600 text-sm mb-4">Record payments to suppliers and vendors</p>
-            <div className="flex items-center text-sm text-gray-600">
-              <span>View payments</span>
-              <TrendingUp className="w-4 h-4 ml-1" />
-            </div>
-          </div>
-
-          {/* Payables */}
-          <Link to="/payables" className="block bg-white rounded-lg shadow hover:shadow-md p-6 text-center border border-gray-200 hover:border-blue-500 transition">
-            <div className="text-3xl mb-2">💸</div>
-            <div className="text-lg font-semibold">Payables</div>
-            <div className="text-sm text-gray-500 mt-1">View & manage supplier payables</div>
-          </Link>
-
-          {/* Receivables */}
-          <Link to="/receivables" className="block bg-white rounded-lg shadow hover:shadow-md p-6 text-center border border-gray-200 hover:border-green-500 transition">
-            <div className="text-3xl mb-2">💰</div>
-            <div className="text-lg font-semibold">Receivables</div>
-            <div className="text-sm text-gray-500 mt-1">View & manage customer receivables</div>
-          </Link>
         </div>
       </div>
     </div>
   );
 };
 
-export default FinancialDashboardPage; 
+export default FinancialDashboardPage;

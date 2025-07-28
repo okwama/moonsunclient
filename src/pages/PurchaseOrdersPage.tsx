@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { purchaseOrdersService } from '../services/financialService';
 import { PurchaseOrder } from '../types/financial';
 
@@ -7,6 +7,11 @@ const PurchaseOrdersPage: React.FC = () => {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string>('draft');
+
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
+  const supplierId = query.get('supplierId');
 
   useEffect(() => {
     fetchPurchaseOrders();
@@ -86,6 +91,11 @@ const PurchaseOrdersPage: React.FC = () => {
     );
   }
 
+  const filteredOrders = purchaseOrders.filter(po => {
+    if (statusFilter === 'all') return true;
+    return po.status === statusFilter;
+  }).filter(po => !supplierId || String(po.supplier_id) === String(supplierId));
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -110,9 +120,25 @@ const PurchaseOrdersPage: React.FC = () => {
           </div>
         </div>
 
+        {/* Status Filter */}
+        <div className="mb-4 flex items-center">
+          <label className="mr-2 text-sm font-medium text-gray-700">Filter by Status:</label>
+          <select
+            value={statusFilter}
+            onChange={e => setStatusFilter(e.target.value)}
+            className="border border-gray-300 rounded px-2 py-1 text-sm"
+          >
+            <option value="all">All</option>
+            <option value="draft">Draft</option>
+            <option value="sent">Sent</option>
+            <option value="received">Received</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
         {/* Purchase Orders Table */}
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          {purchaseOrders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -132,7 +158,7 @@ const PurchaseOrdersPage: React.FC = () => {
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
-              {purchaseOrders.map((po) => (
+              {filteredOrders.map((po) => (
                 <li key={po.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center">

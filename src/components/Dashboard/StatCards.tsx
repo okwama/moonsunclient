@@ -88,18 +88,7 @@ const StatCards: React.FC = () => {
           }} 
         />
       </div>
-      <div onClick={() => navigate('/dashboard/claims')} className="cursor-pointer">
-        <StatCard 
-          position={4} 
-          title="SOS" 
-          value={isLoading ? '...' : stats.completed} 
-          icon={<BadgeInfo className="h-6 w-6 text-red-600" aria-hidden="true" />} 
-          change={{
-            value: 0,
-            positive: true
-          }} 
-        />
-      </div>
+
     </div>
   );
 };

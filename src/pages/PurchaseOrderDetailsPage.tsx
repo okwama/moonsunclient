@@ -253,8 +253,23 @@ const PurchaseOrderDetailsPage: React.FC = () => {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'KES'
     }).format(amount);
+  };
+
+  // Add this handler for canceling the PO
+  const handleCancelPO = async () => {
+    if (!id) return;
+    if (!window.confirm('Are you sure you want to cancel this purchase order? This action cannot be undone.')) return;
+    try {
+      setSubmitting(true);
+      await purchaseOrdersService.updateStatus(parseInt(id), 'cancelled');
+      await fetchPurchaseOrder();
+    } catch (err) {
+      alert('Failed to cancel purchase order');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -301,7 +316,7 @@ const PurchaseOrderDetailsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -312,12 +327,19 @@ const PurchaseOrderDetailsPage: React.FC = () => {
               </p>
             </div>
             <div className="flex space-x-3">
-              <button
-                onClick={() => navigate('/purchase-orders')}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
+              <Link to="/purchase-orders" className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
                 Back to Purchase Orders
+              </Link>
+              {/* Cancel button only if not already cancelled */}
+              {purchaseOrder && purchaseOrder.status !== 'cancelled' && (
+                <button
+                  onClick={handleCancelPO}
+                  disabled={submitting}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Cancelling...' : 'Cancel Purchase Order'}
               </button>
+              )}
               {purchaseOrder.status === 'sent' && (
                 <button
                   onClick={() => setShowReceiveForm(!showReceiveForm)}

@@ -5,7 +5,7 @@ interface Account {
   id: number;
   account_code: string;
   account_name: string;
-  account_type: string;
+  account_type: number; // should be number, not string
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
@@ -32,8 +32,8 @@ const AddExpensePage: React.FC = () => {
     try {
       const res = await axios.get(`${API_BASE_URL}/financial/accounts`);
       if (res.data.success) {
-        setExpenseAccounts(res.data.data.filter((a: Account) => a.account_type === 'expense'));
-        setPaymentAccounts(res.data.data.filter((a: Account) => a.account_type === 'cash'));
+        setExpenseAccounts(res.data.data.filter((a: Account) => a.account_type === 16));
+        setPaymentAccounts(res.data.data.filter((a: Account) => a.account_type === 9));
       }
     } catch {
       setError('Failed to load accounts');

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { storeService } from '../services/storeService';
 import { StoreInventory, StoreInventorySummary } from '../types/financial';
+import { inventoryAsOfService } from '../services/financialService';
 
 const StoreInventoryPage: React.FC = () => {
   const [inventorySummary, setInventorySummary] = useState<StoreInventorySummary[]>([]);
@@ -10,10 +11,48 @@ const StoreInventoryPage: React.FC = () => {
   const [stores, setStores] = useState<{ id: number; store_name: string; store_code: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [asOfInventory, setAsOfInventory] = useState<any[] | null>(null);
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (allInventory.length > 0 && stores.length > 0) {
+      console.log('stores:', stores);
+      console.log('allInventory:', allInventory);
+      allInventory.forEach(item => {
+        const found = stores.find(s => Number(s.id) === Number(item.store_id));
+        if (!found) {
+          console.log('No match for store_id:', item.store_id);
+        }
+      });
+    }
+  }, [stores, allInventory]);
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchInventoryAsOf(selectedDate, selectedStore);
+    } else {
+      setAsOfInventory(null);
+    }
+  }, [selectedDate, selectedStore]);
+
+  const fetchInventoryAsOf = async (date: string, store: number | 'all') => {
+    try {
+      const params: any = { date };
+      if (store !== 'all') params.store_id = store;
+      const response = await inventoryAsOfService.getAll(params);
+      if (response.success && response.data) {
+        setAsOfInventory(response.data);
+      } else {
+        setAsOfInventory([]);
+      }
+    } catch {
+      setAsOfInventory([]);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -23,7 +62,12 @@ const StoreInventoryPage: React.FC = () => {
       const summaryResponse = await storeService.getInventorySummaryByStore();
       if (summaryResponse.success) {
         setInventorySummary(summaryResponse.data || []);
-        setStores(summaryResponse.data || []);
+      }
+
+      // Fetch all stores
+      const storesResponse = await storeService.getAllStores();
+      if (storesResponse.success) {
+        setStores(storesResponse.data || []);
       }
 
       // Fetch all inventory
@@ -39,22 +83,23 @@ const StoreInventoryPage: React.FC = () => {
   };
 
   const getFilteredInventory = () => {
+    if (asOfInventory) return asOfInventory;
     if (selectedStore === 'all') {
       return allInventory;
     }
-    return allInventory.filter(item => item.store_id === selectedStore);
+    return allInventory.filter(item => Number(item.store_id) === Number(selectedStore));
   };
 
   const getStoreName = (storeId: number) => {
-    const store = stores.find(s => s.id === storeId);
+    const store = stores.find(s => Number(s.id) === Number(storeId));
     return store ? store.store_name : 'Unknown Store';
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+  const number_format = (amount: number) => {
+    if (amount === null || amount === undefined || isNaN(amount)) {
+      return '0.00';
+    }
+    return amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const getLowStockItems = () => {
@@ -62,8 +107,8 @@ const StoreInventoryPage: React.FC = () => {
   };
 
   const getTotalInventoryValue = () => {
-    return allInventory.reduce((total, item) => {
-      return total + (item.inventory_value || 0);
+    return getFilteredInventory().reduce((total, item) => {
+      return total + (Number(item.inventory_value) || 0);
     }, 0);
   };
 
@@ -101,8 +146,9 @@ const StoreInventoryPage: React.FC = () => {
   const lowStockItems = getLowStockItems();
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+         
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
@@ -112,14 +158,64 @@ const StoreInventoryPage: React.FC = () => {
                 Track inventory levels across all stores
               </p>
             </div>
-            <Link
-              to="/purchase-orders"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              View Purchase Orders
-            </Link>
+            <div className="flex flex-wrap gap-3 mb-6">
+              <Link
+                to="/stock-take"
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+              >
+                Stock Take
+              </Link>
+               
+              <Link
+                to="/inventory-transactions"
+                className="inline-flex items-center px-4 py-2 border border-indigo-300 text-sm font-medium rounded-md text-indigo-700 bg-white hover:bg-indigo-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ml-2"
+              >
+                Inventory Transactions
+              </Link>
+              <Link
+                to="/inventory-as-of"
+                className="inline-flex items-center px-4 py-2 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ml-2"
+              >
+                Inventory As Of Date
+              </Link>
+              <Link
+                to="/stock-transfer-history"
+                className="inline-flex items-center px-4 py-2 border border-yellow-300 text-sm font-medium rounded-md text-yellow-700 bg-white hover:bg-yellow-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500 ml-2"
+              >
+                Stock Transfer
+              </Link>
+            </div>
           </div>
         </div>
+
+        {/* Store Summary (moved to top) */}
+        {selectedStore === 'all' && inventorySummary.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Store Summary</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {inventorySummary.map((store) => (
+                <div key={store.id} className="bg-white shadow rounded-lg p-4">
+                  <h3 className="text-sm font-medium text-gray-900">{store.store_name}</h3>
+                  <p className="text-xs text-gray-500 mb-3">{store.store_code}</p>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Products:</span>
+                      <span className="font-medium">{store.total_products}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Items:</span>
+                      <span className="font-medium">{store.total_items || 0}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-500">Value:</span>
+                      <span className="font-medium">{number_format(store.total_inventory_value || 0)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -153,7 +249,7 @@ const StoreInventoryPage: React.FC = () => {
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Products</dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {new Set(allInventory.map(item => item.product_id)).size}
+                      {new Set(getFilteredInventory().map(item => item.product_id)).size}
                     </dd>
                   </dl>
                 </div>
@@ -191,7 +287,7 @@ const StoreInventoryPage: React.FC = () => {
                   <dl>
                     <dt className="text-sm font-medium text-gray-500 truncate">Total Value</dt>
                     <dd className="text-lg font-medium text-gray-900">
-                      {formatCurrency(getTotalInventoryValue())}
+                      {number_format(getTotalInventoryValue())}
                     </dd>
                   </dl>
                 </div>
@@ -200,29 +296,53 @@ const StoreInventoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Store Filter */}
-        <div className="mb-6">
-          <label htmlFor="store-filter" className="block text-sm font-medium text-gray-700 mb-2">
-            Filter by Store
-          </label>
-          <select
-            id="store-filter"
-            value={selectedStore}
-            onChange={(e) => setSelectedStore(e.target.value === 'all' ? 'all' : parseInt(e.target.value))}
-            className="block w-64 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-          >
-            <option value="all">All Stores</option>
-            {stores.map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.store_name} ({store.store_code})
-              </option>
-            ))}
-          </select>
+        {/* Store Filter and Date Filter */}
+        <div className="mb-6 flex flex-col md:flex-row md:items-end gap-4">
+          <div>
+            <label htmlFor="store-filter" className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Store
+            </label>
+            <select
+              id="store-filter"
+              value={selectedStore}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedStore(value === 'all' ? 'all' : Number(value));
+              }}
+              className="block w-64 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="all">All Stores</option>
+              {stores.map((store) => (
+                <option key={store.id} value={store.id}>
+                  {store.store_name} ({store.store_code})
+                </option>
+              ))}
+            </select>
+          </div>
+          <div hidden>
+            <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700 mb-2">
+              Inventory as of Date
+            </label>
+            <input
+              id="date-filter"
+              type="date"
+              className="block w-48 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+            />
+          </div>
         </div>
 
         {/* Inventory Table */}
-        <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          {filteredInventory.length === 0 ? (
+        {selectedStore !== 'all' && (
+          <div className="mb-4">
+            <span className="inline-block bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
+              Store: {getStoreName(selectedStore as number)}
+            </span>
+          </div>
+        )}
+        {filteredInventory.length === 0 ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
@@ -259,9 +379,7 @@ const StoreInventoryPage: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Cost Price
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Selling Price
-                    </th>
+                    
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Inventory Value
                     </th>
@@ -303,13 +421,11 @@ const StoreInventoryPage: React.FC = () => {
                         {item.unit_of_measure}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.cost_price ? formatCurrency(item.cost_price) : 'N/A'}
+                        {item.cost_price ? number_format(item.cost_price) : 'N/A'}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {item.selling_price ? formatCurrency(item.selling_price) : 'N/A'}
-                      </td>
+                      
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {item.inventory_value ? formatCurrency(item.inventory_value) : 'N/A'}
+                        {item.inventory_value ? number_format(item.inventory_value) : 'N/A'}
                       </td>
                     </tr>
                   ))}
@@ -317,36 +433,9 @@ const StoreInventoryPage: React.FC = () => {
               </table>
             </div>
           )}
-        </div>
 
         {/* Store Summary */}
-        {selectedStore === 'all' && inventorySummary.length > 0 && (
-          <div className="mt-8">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">Store Summary</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {inventorySummary.map((store) => (
-                <div key={store.id} className="bg-white shadow rounded-lg p-4">
-                  <h3 className="text-sm font-medium text-gray-900">{store.store_name}</h3>
-                  <p className="text-xs text-gray-500 mb-3">{store.store_code}</p>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Products:</span>
-                      <span className="font-medium">{store.total_products}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Items:</span>
-                      <span className="font-medium">{store.total_items || 0}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Value:</span>
-                      <span className="font-medium">{formatCurrency(store.total_inventory_value || 0)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* (Removed from bottom, now at top) */}
       </div>
     </div>
   );

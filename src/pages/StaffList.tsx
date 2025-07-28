@@ -4,6 +4,7 @@ import { Role, roleService } from '../services/roleService';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { teamService } from '../services/teamService';
+import { Link } from 'react-router-dom';
 
 interface Team {
   id: number;
@@ -16,7 +17,7 @@ const REQUIRED_ROLES = ['Team Leader', 'Driver', 'Cash Officer', 'Police'];
 
 const StaffList: React.FC = () => {
   const [staff, setStaff] = useState<Staff[]>([]);
-  const [roles, setRoles] = useState<Role[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -26,7 +27,8 @@ const StaffList: React.FC = () => {
     photo_url: '',
     empl_no: '',
     id_no: 0,
-    role: ''
+    role: '',
+    employment_type: 'Permanent',
   });
   const contentRef = useRef<HTMLDivElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -50,18 +52,18 @@ const StaffList: React.FC = () => {
     const fetchData = async () => {
       try {
         setIsLoading(true);
-        console.log('Fetching staff and roles data...');
+        console.log('Fetching staff and departments data...');
         
-        const [staffData, rolesData] = await Promise.all([
+        const [staffData, departmentsData] = await Promise.all([
           staffService.getStaffList(),
-          roleService.getRoles()
+          fetch('/api/departments').then(res => res.json())
         ]);
         
         console.log('Staff data:', staffData);
-        console.log('Roles data:', rolesData);
+        console.log('Departments data:', departmentsData);
         
         setStaff(staffData);
-        setRoles(rolesData);
+        setDepartments(departmentsData);
         setError(null);
       } catch (err) {
         console.error('Error fetching data:', err);
@@ -129,7 +131,8 @@ const StaffList: React.FC = () => {
         photo_url: '',
         empl_no: '',
         id_no: 0,
-        role: ''
+        role: '',
+        employment_type: 'Permanent',
       });
       setSelectedFile(null);
     } catch (err) {
@@ -178,7 +181,8 @@ const StaffList: React.FC = () => {
       photo_url: staff.photo_url,
       empl_no: staff.empl_no,
       id_no: staff.id_no,
-      role: staff.role
+      role: staff.role,
+      employment_type: staff.employment_type,
     });
     setIsEditMode(true);
     setIsModalOpen(true);
@@ -327,6 +331,18 @@ const StaffList: React.FC = () => {
               >
                 Photo List
               </a>
+              <Link
+                to="/dashboard/employee-warnings"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700"
+              >
+                Employee Warnings
+              </Link>
+              <Link
+                to="/dashboard/expiring-contracts"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-600 hover:bg-yellow-700"
+              >
+                Expiring Contracts
+              </Link>
               <button
                 onClick={exportToPDF}
                 disabled={isExporting}
@@ -364,6 +380,9 @@ const StaffList: React.FC = () => {
                     ID Number
                   </th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Employment Type
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
                 </tr>
@@ -382,6 +401,9 @@ const StaffList: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">{member.id_no}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900">{member.employment_type}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
@@ -429,7 +451,8 @@ const StaffList: React.FC = () => {
                     photo_url: '',
                     empl_no: '',
                     id_no: 0,
-                    role: ''
+                    role: '',
+                    employment_type: 'Permanent',
                   });
                   setSelectedFile(null);
                 }}
@@ -520,11 +543,23 @@ const StaffList: React.FC = () => {
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                 >
                   <option value="">Select a role</option>
-                  {roles.map((role) => (
-                    <option key={role.id} value={role.name}>
-                      {role.name}
+                  {departments.map((department) => (
+                    <option key={department.id} value={department.name}>
+                      {department.name}
                     </option>
                   ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Employment Type</label>
+                <select
+                  name="employment_type"
+                  value={newStaff.employment_type}
+                  onChange={handleInputChange}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                >
+                  <option value="Permanent">Permanent</option>
+                  <option value="Contract">Contract</option>
                 </select>
               </div>
               <div className="flex justify-end space-x-3">
@@ -539,7 +574,8 @@ const StaffList: React.FC = () => {
                       photo_url: '',
                       empl_no: '',
                       id_no: 0,
-                      role: ''
+                      role: '',
+                      employment_type: 'Permanent',
                     });
                     setSelectedFile(null);
                   }}

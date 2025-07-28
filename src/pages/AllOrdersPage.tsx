@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { salesOrdersService } from '../services/financialService';
 import { SalesOrder } from '../types/financial';
+import { receiptsService } from '../services/financialService';
 
 interface SalesOrderRow {
   id: number;
@@ -15,14 +16,32 @@ interface SalesOrderRow {
 
 const AllOrdersPage: React.FC = () => {
   const [orders, setOrders] = useState<SalesOrderRow[]>([]);
+  const [receipts, setReceipts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
+  // Get first and last day of current month
+  const today = new Date();
+  const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().slice(0, 10);
+  const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().slice(0, 10);
+
+  const [startDate, setStartDate] = useState<string>(firstDayOfMonth);
+  const [endDate, setEndDate] = useState<string>(lastDayOfMonth);
+  const [clientFilter, setClientFilter] = useState<string>('');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  // For modal temp state
+  const [tempStartDate, setTempStartDate] = useState<string>(startDate);
+  const [tempEndDate, setTempEndDate] = useState<string>(endDate);
+  const [tempClientFilter, setTempClientFilter] = useState<string>(clientFilter);
+
+  // Get unique client names from orders
+  const clientNames = Array.from(new Set(orders.map(o => o.customer))).filter(Boolean);
 
   useEffect(() => {
     fetchSalesOrders();
+    fetchReceipts();
   }, []);
 
   const fetchSalesOrders = async () => {
@@ -30,7 +49,7 @@ const AllOrdersPage: React.FC = () => {
     setError(null);
     try {
       const soRes = await salesOrdersService.getAll();
-      const soRows: SalesOrderRow[] = (soRes.data || []).map((so: SalesOrder) => ({
+      const soRows: SalesOrderRow[] = (soRes.data || []).map((so: SalesOrder & { customer_name?: string }) => ({
         id: so.id,
         order_number: so.so_number,
         customer: (so.customer_name || so.customer?.company_name || 'N/A'),
@@ -44,6 +63,21 @@ const AllOrdersPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchReceipts = async () => {
+    try {
+      const res = await receiptsService.getAll();
+      setReceipts(res.data || []);
+    } catch (err) {
+      // Optionally handle error
+    }
+  };
+
+  const getAmountPaid = (orderId: number) => {
+    return receipts
+      .filter(r => r.invoice_id === orderId && r.status === 'confirmed')
+      .reduce((sum, r) => sum + parseFloat(r.amount), 0);
   };
 
   const fetchOrderDetails = async (id: number) => {
@@ -69,7 +103,30 @@ const AllOrdersPage: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'KES' }).format(amount);
+
+  // When opening modal, sync temp state
+  const openFilterModal = () => {
+    setTempStartDate(startDate);
+    setTempEndDate(endDate);
+    setTempClientFilter(clientFilter);
+    setShowFilterModal(true);
+  };
+  const closeFilterModal = () => setShowFilterModal(false);
+  const applyFilters = () => {
+    setStartDate(tempStartDate);
+    setEndDate(tempEndDate);
+    setClientFilter(tempClientFilter);
+    setShowFilterModal(false);
+  };
+
+  // Filter orders by date range and client
+  const filteredOrders = orders.filter(order => {
+    if (startDate && new Date(order.order_date) < new Date(startDate)) return false;
+    if (endDate && new Date(order.order_date) > new Date(endDate)) return false;
+    if (clientFilter && order.customer !== clientFilter) return false;
+    return true;
+  });
 
   if (loading) {
     return (
@@ -108,8 +165,50 @@ const AllOrdersPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">Sales Orders</h1>
           <p className="mt-2 text-sm text-gray-600">View all sales orders</p>
         </div>
+        {/* Filter Button */}
+        <div className="mb-4 flex justify-end">
+          <button onClick={openFilterModal} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Filter</button>
+        </div>
+        {/* Filter Modal */}
+        {showFilterModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4">Filter Orders</h2>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <input type="date" value={tempStartDate} onChange={e => setTempStartDate(e.target.value)} className="border rounded px-2 py-1 w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <input type="date" value={tempEndDate} onChange={e => setTempEndDate(e.target.value)} className="border rounded px-2 py-1 w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Client</label>
+                  <select value={tempClientFilter} onChange={e => setTempClientFilter(e.target.value)} className="border rounded px-2 py-1 w-full">
+                    <option value="">All Clients</option>
+                    {clientNames.map(name => (
+                      <option key={name} value={name}>{name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="mt-6 flex justify-end space-x-2">
+                <button onClick={closeFilterModal} className="px-4 py-2 bg-gray-200 rounded hover:bg-gray-300">Cancel</button>
+                <button onClick={applyFilters} className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Apply</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Total Amount for All Orders */}
+        {filteredOrders.length > 0 && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-md flex items-center">
+            <span className="text-lg font-semibold text-blue-900 mr-2">Total Amount for All Orders:</span>
+            <span className="text-xl font-bold text-blue-700">{formatCurrency(filteredOrders.reduce((sum, o) => sum + (Number(o.total_amount) || 0), 0))}</span>
+          </div>
+        )}
         <div className="bg-white shadow overflow-hidden sm:rounded-md">
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -126,17 +225,21 @@ const AllOrdersPage: React.FC = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order Date</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount Paid</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Balance</th>
                   <th className="px-6 py-3"></th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <tr key={order.id}>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_number}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.customer}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatDate(order.order_date)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.status}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatCurrency(order.total_amount)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatCurrency(getAmountPaid(order.id))}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatCurrency(order.total_amount - getAmountPaid(order.id))}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link to={`/sales-orders/${order.id}`} className="text-blue-600 hover:text-blue-900">View</Link>
                     </td>
