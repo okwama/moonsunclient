@@ -47,7 +47,7 @@ export interface SalesRep {
 const API_BASE_URL = '/api';
 
 export const visibilityReportService = {
-  getAll: async (): Promise<VisibilityReportResponse> => {
+  getAll: async (p0: { page: number; limit: number; startDate?: string; endDate?: string; currentDate?: string; country?: string; salesRep?: string; search?: string; }): Promise<VisibilityReportResponse> => {
     try {
       const response = await axios.get(`${API_BASE_URL}/visibility-reports`);
       return response.data;
