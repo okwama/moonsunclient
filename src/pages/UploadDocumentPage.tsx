@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const UploadDocumentPage: React.FC = () => {
   const [title, setTitle] = useState('');
@@ -10,6 +10,9 @@ const UploadDocumentPage: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const staffId = searchParams.get('staff_id');
+  const staffName = searchParams.get('staff_name');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,11 +28,23 @@ const UploadDocumentPage: React.FC = () => {
     formData.append('category', category);
     formData.append('file', file);
     formData.append('description', description);
+    
     try {
-      const res = await fetch('/api/documents', {
-        method: 'POST',
-        body: formData,
-      });
+      let res;
+      if (staffId) {
+        // Upload employee document
+        res = await fetch(`/api/staff/${staffId}/documents`, {
+          method: 'POST',
+          body: formData,
+        });
+      } else {
+        // Upload general document
+        res = await fetch('/api/documents', {
+          method: 'POST',
+          body: formData,
+        });
+      }
+      
       if (!res.ok) throw new Error('Failed to upload document');
       setSuccess('Document uploaded successfully!');
       setTitle('');
@@ -44,7 +59,9 @@ const UploadDocumentPage: React.FC = () => {
 
   return (
     <div className="max-w-xl mx-auto p-6 bg-white rounded shadow mt-8">
-      <h1 className="text-2xl font-bold mb-4">Upload Document</h1>
+      <h1 className="text-2xl font-bold mb-4">
+        {staffId && staffName ? `Upload Document for ${staffName}` : 'Upload Document'}
+      </h1>
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Title<span className="text-red-500">*</span></label>

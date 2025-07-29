@@ -9,6 +9,7 @@ export interface Staff {
   empl_no: string;
   id_no: number;
   role: string;
+  employment_type?: string;
   status: number;  // 1 for active, 0 for deactivated
   created_at: string;
   updated_at: string;
@@ -21,6 +22,7 @@ export interface CreateStaffData {
   empl_no: string;
   id_no: number;
   role: string;
+  employment_type?: string;
 }
 
 export const staffService = {

@@ -28,7 +28,7 @@ const StaffList: React.FC = () => {
     empl_no: '',
     id_no: 0,
     role: '',
-    employment_type: 'Permanent',
+    employment_type: 'Consultant',
   });
   const contentRef = useRef<HTMLDivElement>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -343,6 +343,12 @@ const StaffList: React.FC = () => {
               >
                 Expiring Contracts
               </Link>
+              <Link
+                to="/upload-document"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+              >
+                Upload Documents
+              </Link>
               <button
                 onClick={exportToPDF}
                 disabled={isExporting}
@@ -423,6 +429,18 @@ const StaffList: React.FC = () => {
                         >
                           {member.status === 1 ? 'Deactivate' : 'Activate'}
                         </button>
+                        <Link
+                          to={`/upload-document?staff_id=${member.id}&staff_name=${encodeURIComponent(member.name)}`}
+                          className="text-purple-600 hover:text-purple-900"
+                        >
+                          Upload Docs
+                        </Link>
+                        <Link
+                          to={`/employee-documents?staff_id=${member.id}&staff_name=${encodeURIComponent(member.name)}`}
+                          className="text-indigo-600 hover:text-indigo-900"
+                        >
+                          View Docs
+                        </Link>
                       </div>
                     </td>
                   </tr>
@@ -558,7 +576,7 @@ const StaffList: React.FC = () => {
                   onChange={handleInputChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
-                  <option value="Permanent">Permanent</option>
+                  <option value="Consultant">Consultant</option>
                   <option value="Contract">Contract</option>
                 </select>
               </div>
@@ -575,7 +593,7 @@ const StaffList: React.FC = () => {
                       empl_no: '',
                       id_no: 0,
                       role: '',
-                      employment_type: 'Permanent',
+                      employment_type: 'Consultant',
                     });
                     setSelectedFile(null);
                   }}

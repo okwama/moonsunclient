@@ -98,11 +98,14 @@ import ExpensesPage from './pages/ExpensesPage';
 import ClientProfilePage from './pages/ClientProfilePage';
 import InventoryStaffDashboardPage from './pages/InventoryStaffDashboardPage';
 import RoleBasedRoute from './components/RoleBasedRoute';
+import UploadDocumentPage from './pages/UploadDocumentPage';
+import EmployeeDocumentsPage from './pages/EmployeeDocumentsPage';
 import InventorySalesPage from './pages/InventorySalesPage';
 import MyVisibilityPage from './pages/MyVisibilityPage';
 import EmployeeWorkingHoursPage from './pages/EmployeeWorkingHoursPage';
 import EmployeeWorkingDaysPage from './pages/EmployeeWorkingDaysPage';
 import OutOfOfficeRequestsPage from './pages/OutOfOfficeRequestsPage';
+import AddJournalEntryPage from './pages/AddJournalEntryPage';
 
 // Protected route wrapper
 const ProtectedRoute = () => {
@@ -172,7 +175,8 @@ const App = () => {
           <Route path="/managers-performance" element={<ManagersPerformancePage />} />
           <Route path="/employee-working-hours" element={<EmployeeWorkingHoursPage />} />
           <Route path="/employee-working-days" element={<EmployeeWorkingDaysPage />} />
-          <Route path="/out-of-office-requests" element={<OutOfOfficeRequestsPage />} />
+                          <Route path="/out-of-office-requests" element={<OutOfOfficeRequestsPage />} />
+                <Route path="/add-journal-entry" element={<AddJournalEntryPage />} />
 
           <Route path="/dashboard/teams-list" element={<TeamsList/>} />
           <Route path="/dashboard/clients-list" element={<ClientsList/>} />
@@ -261,6 +265,8 @@ const App = () => {
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/client-profile/:id" element={<ClientProfilePage />} />
           <Route path="/dashboard/clients/:id" element={<ClientDetailsPage />} />
+          <Route path="/upload-document" element={<UploadDocumentPage />} />
+          <Route path="/employee-documents" element={<EmployeeDocumentsPage />} />
         </Route>
         
         <Route path="/settings" element={

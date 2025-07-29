@@ -9,7 +9,7 @@ const initialForm = {
   businessEmail: '',
   departmentEmail: '',
   salary: '',
-  employmentType: 'Permanent',
+  employmentType: 'Consultant',
 };
 
 const EmployeesPage: React.FC = () => {
@@ -594,7 +594,7 @@ const EmployeesPage: React.FC = () => {
                   className="mt-1 block w-full border rounded px-3 py-2 focus:outline-none focus:ring"
                   required
                 >
-                  <option value="Permanent">Permanent</option>
+                  <option value="Consultant">Consultant</option>
                   <option value="Contract">Contract</option>
                 </select>
               </div>
@@ -709,7 +709,7 @@ const EmployeesPage: React.FC = () => {
                   className="mt-1 block w-full border rounded px-3 py-2 focus:outline-none focus:ring"
                   required
                 >
-                  <option value="Permanent">Permanent</option>
+                  <option value="Consultant">Consultant</option>
                   <option value="Contract">Contract</option>
                 </select>
               </div>

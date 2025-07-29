@@ -62,7 +62,7 @@ const FinancialDashboardPage = () => {
     { name: 'Add Expense', icon: DollarSign, color: 'red', href: '/add-expense' },
     { name: 'Chat Room', icon: Notebook, color: 'purple', href: '/chat-room' },
     { name: 'Equity Entries', icon: DollarSign, color: 'emerald', href: '/equity/entries', featured: true },
-    { name: 'Journal Entries', icon: FileText, color: 'amber', href: '/journal-entries', featured: true }
+    { name: 'Add Journal Entry', icon: FileText, color: 'amber', href: '/add-journal-entry', featured: true }
   ];
 
   const navigationCards = [
@@ -77,7 +77,8 @@ const FinancialDashboardPage = () => {
     { title: 'Purchase Orders', desc: 'Manage purchase orders', icon: ShoppingCart, color: 'orange', href: '/purchase-orders' },
     { title: 'Sales Orders', desc: 'Manage sales orders', icon: DollarSign, color: 'red', href: '/all-orders' },
     { title: 'Receipts', desc: 'Record customer payments', icon: CreditCard, color: 'yellow', href: '/receipts' },
-    { title: 'Payroll Management', desc: 'Record staff payroll', icon: CreditCard, color: 'yellow', href: '/payroll-management' }
+    { title: 'Payroll Management', desc: 'Record staff payroll', icon: CreditCard, color: 'yellow', href: '/payroll-management' },
+    { title: 'Journal Entries', desc: 'View all journal entries', icon: FileText, color: 'amber', href: '/journal-entries' }
   ];
 
   const financialCards = [
