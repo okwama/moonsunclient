@@ -17,6 +17,20 @@ import {
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Add request interceptor to include auth token
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Chart of Accounts Service
 export const chartOfAccountsService = {
   getAll: async (): Promise<ApiResponse<ChartOfAccount[]>> => {
@@ -48,27 +62,55 @@ export const chartOfAccountsService = {
 // Suppliers Service
 export const suppliersService = {
   getAll: async (): Promise<ApiResponse<Supplier[]>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/suppliers`);
+    const response = await axios.get(`${API_BASE_URL}/suppliers`);
     return response.data;
   },
 
   getById: async (id: number): Promise<ApiResponse<Supplier>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/suppliers/${id}`);
+    const response = await axios.get(`${API_BASE_URL}/suppliers/${id}`);
     return response.data;
   },
 
   create: async (supplier: Partial<Supplier>): Promise<ApiResponse<Supplier>> => {
-    const response = await axios.post(`${API_BASE_URL}/financial/suppliers`, supplier);
+    const response = await axios.post(`${API_BASE_URL}/suppliers`, supplier);
     return response.data;
   },
 
   update: async (id: number, supplier: Partial<Supplier>): Promise<ApiResponse<void>> => {
-    const response = await axios.put(`${API_BASE_URL}/financial/suppliers/${id}`, supplier);
+    const response = await axios.put(`${API_BASE_URL}/suppliers/${id}`, supplier);
     return response.data;
   },
 
   delete: async (id: number): Promise<ApiResponse<void>> => {
-    const response = await axios.delete(`${API_BASE_URL}/financial/suppliers/${id}`);
+    const response = await axios.delete(`${API_BASE_URL}/suppliers/${id}`);
+    return response.data;
+  }
+};
+
+// Stores Service
+export const storesService = {
+  getAll: async (): Promise<ApiResponse<any[]>> => {
+    const response = await axios.get(`${API_BASE_URL}/stores`);
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await axios.get(`${API_BASE_URL}/stores/${id}`);
+    return response.data;
+  },
+
+  create: async (store: any): Promise<ApiResponse<any>> => {
+    const response = await axios.post(`${API_BASE_URL}/stores`, store);
+    return response.data;
+  },
+
+  update: async (id: number, store: any): Promise<ApiResponse<any>> => {
+    const response = await axios.put(`${API_BASE_URL}/stores/${id}`, store);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await axios.delete(`${API_BASE_URL}/stores/${id}`);
     return response.data;
   }
 };
@@ -76,8 +118,14 @@ export const suppliersService = {
 // Customers Service
 export const customersService = {
   getAll: async (): Promise<ApiResponse<Customer[]>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/customers`);
-    return response.data;
+    // Request all clients by setting a very high limit
+    const response = await axios.get(`${API_BASE_URL}/clients?limit=10000`);
+    // The clients API returns { data: [...], page, limit, total, totalPages }
+    // We need to transform it to match the expected ApiResponse format
+    return {
+      success: true,
+      data: response.data.data || response.data
+    };
   },
 
   getById: async (id: number): Promise<ApiResponse<Customer>> => {
@@ -224,11 +272,28 @@ export const salesOrdersService = {
   },
 
   create: async (salesOrder: CreateSalesOrderForm): Promise<ApiResponse<any>> => {
-    const response = await axios.post(`${API_BASE_URL}/financial/sales-orders`, salesOrder);
-    return response.data;
+    console.log('=== SALES ORDERS SERVICE CREATE ===');
+    console.log('API URL:', `${API_BASE_URL}/financial/sales-orders`);
+    console.log('Request data:', JSON.stringify(salesOrder, null, 2));
+    
+    try {
+      const response = await axios.post(`${API_BASE_URL}/financial/sales-orders`, salesOrder);
+      console.log('=== API RESPONSE SUCCESS ===');
+      console.log('Response status:', response.status);
+      console.log('Response data:', JSON.stringify(response.data, null, 2));
+      return response.data;
+    } catch (error: any) {
+      console.log('=== API RESPONSE ERROR ===');
+      console.log('Error:', error);
+      if (error.response) {
+        console.log('Error status:', error.response.status);
+        console.log('Error data:', JSON.stringify(error.response.data, null, 2));
+      }
+      throw error;
+    }
   },
 
-  update: async (id: number, salesOrder: Partial<CreateSalesOrderForm>): Promise<ApiResponse<void>> => {
+  update: async (id: number, salesOrder: Partial<CreateSalesOrderForm> & { my_status?: number }): Promise<ApiResponse<void>> => {
     const response = await axios.put(`${API_BASE_URL}/financial/sales-orders/${id}`, salesOrder);
     return response.data;
   },
@@ -245,6 +310,27 @@ export const salesOrdersService = {
   receiveBackToStock: async (id: number) => {
     const response = await axios.post(`${API_BASE_URL}/financial/sales-orders/${id}/receive-back`);
     return response.data;
+  },
+
+  convertToInvoice: async (id: number, invoiceData: any): Promise<ApiResponse<any>> => {
+    console.log('=== CONVERTING TO INVOICE ===');
+    console.log('Order ID:', id);
+    console.log('Invoice data:', JSON.stringify(invoiceData, null, 2));
+    
+    try {
+      const response = await axios.post(`${API_BASE_URL}/financial/sales-orders/${id}/convert-to-invoice`, invoiceData);
+      console.log('=== CONVERT TO INVOICE SUCCESS ===');
+      console.log('Response:', JSON.stringify(response.data, null, 2));
+      return response.data;
+    } catch (error: any) {
+      console.log('=== CONVERT TO INVOICE ERROR ===');
+      console.log('Error:', error);
+      if (error.response) {
+        console.log('Error status:', error.response.status);
+        console.log('Error data:', JSON.stringify(error.response.data, null, 2));
+      }
+      throw error;
+    }
   }
 };
 
@@ -256,30 +342,124 @@ export const salesOrderItemsService = {
   }
 };
 
-// Receipts Service
-export const receiptsService = {
-  getAll: async (): Promise<ApiResponse<any[]>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/receipts`);
+// My Assets Service
+export const myAssetsService = {
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    asset_type?: string;
+    location?: string;
+  }): Promise<PaginatedResponse<any[]>> => {
+    const response = await axios.get(`${API_BASE_URL}/my-assets`, { params });
     return response.data;
   },
 
   getById: async (id: number): Promise<ApiResponse<any>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/receipts/${id}`);
+    const response = await axios.get(`${API_BASE_URL}/my-assets/${id}`);
     return response.data;
   },
 
-  create: async (receipt: CreateReceiptForm): Promise<ApiResponse<any>> => {
-    const response = await axios.post(`${API_BASE_URL}/financial/receipts`, receipt);
+  create: async (asset: any): Promise<ApiResponse<any>> => {
+    const headers = asset instanceof FormData 
+      ? { 'Content-Type': 'multipart/form-data' }
+      : { 'Content-Type': 'application/json' };
+    
+    const response = await axios.post(`${API_BASE_URL}/my-assets`, asset, { headers });
     return response.data;
   },
 
-  update: async (id: number, receipt: Partial<CreateReceiptForm>): Promise<ApiResponse<void>> => {
-    const response = await axios.put(`${API_BASE_URL}/financial/receipts/${id}`, receipt);
+  update: async (id: number, asset: any): Promise<ApiResponse<any>> => {
+    const response = await axios.put(`${API_BASE_URL}/my-assets/${id}`, asset);
     return response.data;
   },
 
   delete: async (id: number): Promise<ApiResponse<void>> => {
-    const response = await axios.delete(`${API_BASE_URL}/financial/receipts/${id}`);
+    const response = await axios.delete(`${API_BASE_URL}/my-assets/${id}`);
+    return response.data;
+  },
+
+  getStats: async (): Promise<ApiResponse<any>> => {
+    const response = await axios.get(`${API_BASE_URL}/my-assets/stats/overview`);
+    return response.data;
+  }
+};
+
+// Faulty Products Service
+export const faultyProductsService = {
+  getAllReports: async (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    store_id?: number;
+  }): Promise<PaginatedResponse<any[]>> => {
+    const response = await axios.get(`${API_BASE_URL}/faulty-products`, { params });
+    return response.data;
+  },
+
+  getReportById: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await axios.get(`${API_BASE_URL}/faulty-products/${id}`);
+    return response.data;
+  },
+
+  createReport: async (report: any): Promise<ApiResponse<any>> => {
+    const response = await axios.post(`${API_BASE_URL}/faulty-products`, report);
+    return response.data;
+  },
+
+  updateReportStatus: async (id: number, status: any): Promise<ApiResponse<any>> => {
+    const response = await axios.put(`${API_BASE_URL}/faulty-products/${id}/status`, status);
+    return response.data;
+  },
+
+  deleteReport: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await axios.delete(`${API_BASE_URL}/faulty-products/${id}`);
+    return response.data;
+  },
+
+  getStats: async (): Promise<ApiResponse<any>> => {
+    const response = await axios.get(`${API_BASE_URL}/faulty-products/stats/overview`);
+    return response.data;
+  }
+};
+
+// Receipts Service
+export const receiptsService = {
+  postReceipt: async (formData: FormData): Promise<ApiResponse<any>> => {
+    const response = await axios.post(`${API_BASE_URL}/receipts`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  },
+
+  getAll: async (params?: {
+    page?: number;
+    limit?: number;
+    supplier_id?: number;
+    date_from?: string;
+    date_to?: string;
+  }): Promise<PaginatedResponse<any[]>> => {
+    const response = await axios.get(`${API_BASE_URL}/receipts`, { params });
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<any>> => {
+    const response = await axios.get(`${API_BASE_URL}/receipts/${id}`);
+    return response.data;
+  },
+
+  download: async (id: number): Promise<Blob> => {
+    const response = await axios.get(`${API_BASE_URL}/receipts/${id}/download`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await axios.delete(`${API_BASE_URL}/receipts/${id}`);
     return response.data;
   }
 };
@@ -394,4 +574,6 @@ export const stockTransferService = {
     const response = await axios.get(`${API_BASE_URL}/financial/transfer-history?${query.toString()}`);
     return response.data;
   }
-}; 
+};
+
+ 

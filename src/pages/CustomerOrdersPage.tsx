@@ -1,0 +1,1195 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { 
+  ShoppingCart, 
+  Search, 
+  Filter, 
+  Eye, 
+  Calendar,
+  User,
+  DollarSign,
+  Package,
+  X,
+  Edit,
+  Plus,
+  Trash2,
+  Save
+} from 'lucide-react';
+import { salesOrdersService, productsService } from '../services/financialService';
+import { SalesOrder, Product } from '../types/financial';
+
+const CustomerOrdersPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [orders, setOrders] = useState<SalesOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({
+    expected_delivery_date: '',
+    notes: '',
+    status: '0',
+    items: [] as Array<{
+      id?: number;
+      product_id: number;
+      product_name?: string;
+      quantity: number;
+      unit_price: number;
+      total_price: number;
+    }>
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+
+  useEffect(() => {
+    fetchOrders();
+    fetchProducts();
+  }, []);
+
+  // Close product dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.product-dropdown')) {
+        setShowProductDropdown(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const fetchOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await salesOrdersService.getAll();
+      
+      if (response.success && response.data) {
+        setOrders(response.data);
+      } else {
+        console.error('Failed to fetch orders:', response);
+        setError('Failed to fetch orders');
+      }
+    } catch (err) {
+      console.error('Error fetching orders:', err);
+      setError('Failed to fetch orders');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const response = await productsService.getAll();
+      if (response.success && response.data) {
+        setProducts(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    }
+  };
+
+  // Filter orders based on search term and status - only show orders with status 'draft'
+  const filteredOrders = orders.filter(order => {
+    const matchesSearch = 
+      order.so_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Only show orders with status 'draft'
+    const matchesStatus = order.status === 'draft';
+    
+    return matchesSearch && matchesStatus;
+  });
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString();
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-KE', {
+      style: 'currency',
+      currency: 'KES'
+    }).format(amount);
+  };
+
+  const getStatusBadge = (status?: string) => {
+    const statusColors: { [key: string]: string } = {
+      'draft': 'bg-gray-100 text-gray-800',
+      'confirmed': 'bg-blue-100 text-blue-800',
+      'shipped': 'bg-yellow-100 text-yellow-800',
+      'delivered': 'bg-green-100 text-green-800',
+      'in_payment': 'bg-purple-100 text-purple-800',
+      'paid': 'bg-green-100 text-green-800'
+    };
+    
+    const statusLabels: { [key: string]: string } = {
+      'draft': 'Draft',
+      'confirmed': 'Confirmed',
+      'shipped': 'Shipped',
+      'delivered': 'Delivered',
+      'in_payment': 'In Payment',
+      'paid': 'Paid'
+    };
+    
+    return (
+      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColors[status || 'draft'] || statusColors['draft']}`}>
+        {statusLabels[status || 'draft'] || statusLabels['draft']}
+      </span>
+    );
+  };
+
+  const getStatusText = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      'draft': 'Draft',
+      'confirmed': 'Confirmed',
+      'shipped': 'Shipped',
+      'delivered': 'Delivered',
+      'in_payment': 'In Payment',
+      'paid': 'Paid'
+    };
+    return statusMap[status] || 'Unknown';
+  };
+
+  const openViewModal = (order: SalesOrder) => {
+    setSelectedOrder(order);
+    setShowViewModal(true);
+  };
+
+  const closeViewModal = () => {
+    setShowViewModal(false);
+    setSelectedOrder(null);
+    setIsEditing(false);
+    setSuccessMessage('');
+  };
+
+  const startEditing = () => {
+    if (!selectedOrder) return;
+    
+    setEditForm({
+      expected_delivery_date: selectedOrder.expected_delivery_date || '',
+      notes: selectedOrder.notes || '',
+      status: selectedOrder.status || 'draft',
+      items: selectedOrder.items?.map(item => ({
+        id: item.id,
+        product_id: item.product_id,
+        product_name: item.product?.product_name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        total_price: item.total_price
+      })) || []
+    });
+    setIsEditing(true);
+    setSuccessMessage('');
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setSuccessMessage('');
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedOrder) return;
+    
+    setSubmitting(true);
+    try {
+      const updateData = {
+        client_id: selectedOrder.client_id || selectedOrder.customer_id,
+        order_date: selectedOrder.order_date,
+        expected_delivery_date: editForm.expected_delivery_date || undefined,
+        notes: editForm.notes,
+        status: editForm.status,
+        items: editForm.items
+      };
+
+      const response = await salesOrdersService.update(selectedOrder.id, updateData);
+      
+      if (response.success) {
+        const statusChanged = editForm.status !== selectedOrder.status;
+        const statusText = statusChanged ? `Order updated and status changed to ${getStatusText(editForm.status)}!` : 'Order updated successfully!';
+        setSuccessMessage(statusText);
+        // Refresh the orders list
+        await fetchOrders();
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          closeViewModal();
+        }, 2000);
+      } else {
+        setError(response.error || 'Failed to update order');
+      }
+    } catch (err) {
+      console.error('Error updating order:', err);
+      setError('Failed to update order');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const addItem = () => {
+    const newItem = {
+      product_id: 0,
+      product_name: '',
+      quantity: 1,
+      unit_price: 0,
+      total_price: 0
+    };
+    const newIndex = editForm.items.length;
+    setEditForm({
+      ...editForm,
+      items: [...editForm.items, newItem]
+    });
+    setEditingItemIndex(newIndex);
+    setShowProductDropdown(true);
+    setProductSearch('');
+    
+    // Calculate position after a short delay to ensure the new input is rendered
+    setTimeout(() => {
+      const inputs = document.querySelectorAll('input[placeholder="Search or type product name..."]');
+      const lastInput = inputs[inputs.length - 1] as HTMLInputElement;
+      if (lastInput) {
+        const rect = lastInput.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width
+        });
+      }
+    }, 100);
+  };
+
+  const removeItem = (index: number) => {
+    const newItems = editForm.items.filter((_, i) => i !== index);
+    setEditForm({
+      ...editForm,
+      items: newItems
+    });
+  };
+
+  const updateItem = (index: number, field: string, value: any) => {
+    const newItems = [...editForm.items];
+    newItems[index] = { ...newItems[index], [field]: value };
+    
+    // Recalculate total price
+    if (field === 'quantity' || field === 'unit_price') {
+      newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+    }
+    
+    setEditForm({
+      ...editForm,
+      items: newItems
+    });
+  };
+
+  const selectProduct = (product: Product, index: number) => {
+    console.log('Selecting product:', product, 'for index:', index);
+    
+    // Update the form immediately
+    setEditForm(prevForm => {
+      const newItems = [...prevForm.items];
+      const currentItem = newItems[index];
+      const quantity = currentItem ? currentItem.quantity : 1;
+      const unitPrice = product.selling_price || 0;
+      const totalPrice = quantity * unitPrice;
+      
+      newItems[index] = {
+        ...newItems[index],
+        product_id: product.id,
+        product_name: product.product_name,
+        unit_price: unitPrice,
+        total_price: totalPrice
+      };
+      
+      console.log('Updated items:', newItems);
+      
+      return {
+        ...prevForm,
+        items: newItems
+      };
+    });
+    
+    // Clear search and dropdown state
+    setProductSearch('');
+    setShowProductDropdown(false);
+    setEditingItemIndex(null);
+  };
+
+  const showDropdown = (index: number, event?: React.FocusEvent<HTMLInputElement>) => {
+    setShowProductDropdown(true);
+    setEditingItemIndex(index);
+    
+    if (event) {
+      const rect = event.target.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY,
+        left: rect.left + window.scrollX,
+        width: rect.width
+      });
+    }
+  };
+
+  const filteredProducts = products.filter(product => {
+    const searchTerm = productSearch.toLowerCase().trim();
+    if (!searchTerm) return true; // Show all products when search is empty
+    
+    return (
+      (product.product_name && product.product_name.toLowerCase().includes(searchTerm)) ||
+      (product.product_code && product.product_code.toLowerCase().includes(searchTerm))
+    );
+  });
+
+  const convertToInvoice = async () => {
+    if (!selectedOrder) return;
+    
+    try {
+      setSubmitting(true);
+      
+      // Prepare invoice data
+      const invoiceData = {
+        client_id: selectedOrder.client_id || selectedOrder.customer_id,
+        order_date: selectedOrder.order_date,
+        expected_delivery_date: selectedOrder.expected_delivery_date,
+        notes: selectedOrder.notes,
+        status: 'confirmed', // Set status to confirmed for invoice
+        total_amount: selectedOrder.total_amount,
+        items: selectedOrder.items?.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price
+        })) || []
+      };
+
+      console.log('Converting to invoice with data:', invoiceData);
+
+      // Call API to convert to invoice
+      const response = await salesOrdersService.convertToInvoice(selectedOrder.id, invoiceData);
+      
+      if (response.success) {
+        setSuccessMessage('Order successfully converted to invoice!');
+        // Refresh orders list
+        await fetchOrders();
+        // Close modal after 2 seconds
+        setTimeout(() => {
+          closeViewModal();
+        }, 2000);
+      } else {
+        setError(response.error || 'Failed to convert order to invoice');
+      }
+    } catch (err) {
+      console.error('Error converting to invoice:', err);
+      setError('Failed to convert order to invoice');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center">
+              <ShoppingCart className="h-8 w-8 text-blue-600 mr-3" />
+              <h1 className="text-2xl font-bold text-gray-900">Customer Orders (Draft Status)</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-gray-500">
+                {filteredOrders.length} draft orders
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-8xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {error}
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by order number or customer..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Status Filter - Disabled since we only show draft orders */}
+            <div className="md:w-48">
+              <select
+                value="draft"
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 cursor-not-allowed"
+              >
+                <option value="draft">Draft Orders Only</option>
+              </select>
+            </div>
+
+            {/* Refresh Button */}
+            <button
+              onClick={fetchOrders}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Orders Table */}
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Customer Orders</h3>
+          </div>
+          
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-12">
+              <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
+              <p className="text-gray-500">
+                {searchTerm ? 'Try adjusting your search terms.' : 'No status 0 orders available.'}
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Order Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filteredOrders.map((order) => (
+                    <tr key={order.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-10 w-10">
+                            <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <ShoppingCart className="h-5 w-5 text-blue-600" />
+                            </div>
+                          </div>
+                          <div className="ml-4">
+                            <div className="text-sm font-medium text-gray-900">
+                              {order.so_number}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {order.items?.length || 0} items
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                              <User className="h-4 w-4 text-gray-600" />
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {order.customer_name || order.customer?.name || 'Unknown'}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              {order.customer?.contact || 'No contact'}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                          <div className="text-sm text-gray-900">
+                            {formatDate(order.order_date)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <DollarSign className="h-4 w-4 text-green-500 mr-1" />
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatCurrency(order.total_amount)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(order.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => openViewModal(order)}
+                          className="text-blue-600 hover:text-blue-900 flex items-center"
+                        >
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* View Order Modal */}
+        {showViewModal && selectedOrder && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-10 mx-auto p-8 border w-11/12 md:w-4/5 lg:w-3/4 xl:w-2/3 shadow-xl rounded-lg bg-white">
+              <div className="mt-2">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+                  <div>
+                    <h3 className="text-xl font-semibold text-gray-900">
+                      {isEditing ? 'Edit Order' : 'View Order'}: {selectedOrder.so_number}
+                    </h3>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {isEditing ? 'Edit order details and products' : 'Order Details'}
+                    </p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {!isEditing && (
+                      <>
+                        <button
+                          onClick={startEditing}
+                          className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit Order
+                        </button>
+                        {selectedOrder.status === 'confirmed' && (
+                          <button
+                            onClick={convertToInvoice}
+                            className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
+                          >
+                            <Save className="h-4 w-4 mr-1" />
+                            Convert to Invoice
+                          </button>
+                        )}
+                      </>
+                    )}
+                    <button
+                      onClick={closeViewModal}
+                      className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
+                    >
+                      <X className="h-6 w-6" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Success Message */}
+                {successMessage && (
+                  <div className="mb-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded">
+                    {successMessage}
+                  </div>
+                )}
+
+                {/* Error Message */}
+                {error && (
+                  <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+                    {error}
+                  </div>
+                )}
+
+                {/* Form or Content */}
+                {isEditing ? (
+                  <form onSubmit={handleEditSubmit} className="space-y-8">
+                    {/* Order Info */}
+                <div className="p-6 bg-gray-50 rounded-lg mb-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Order Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Order Number
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedOrder.so_number}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Customer
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedOrder.customer_name || selectedOrder.customer?.name || 'Unknown'}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Order Date
+                      </label>
+                      <input
+                        type="text"
+                        value={formatDate(selectedOrder.order_date)}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                      </label>
+                      {isEditing ? (
+                        <select
+                          value={editForm.status}
+                          onChange={(e) => setEditForm({...editForm, status: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                                          <option value="draft">Draft</option>
+                <option value="confirmed">Confirmed ✓</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="in_payment">In Payment</option>
+                <option value="paid">Paid</option>
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={selectedOrder.status || 'draft'}
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Expected Delivery Date
+                      </label>
+                      {isEditing ? (
+                        <input
+                          type="date"
+                          value={editForm.expected_delivery_date}
+                          onChange={(e) => setEditForm({...editForm, expected_delivery_date: e.target.value})}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={selectedOrder.expected_delivery_date ? formatDate(selectedOrder.expected_delivery_date) : 'Not set'}
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                        />
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Total Amount
+                      </label>
+                      <input
+                        type="text"
+                        value={isEditing ? formatCurrency(editForm.items.reduce((sum, item) => sum + item.total_price, 0)) : formatCurrency(selectedOrder.total_amount)}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Notes */}
+                <div className="p-6 bg-yellow-50 rounded-lg mb-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Order Notes</h4>
+                  {isEditing ? (
+                    <textarea
+                      value={editForm.notes}
+                      onChange={(e) => setEditForm({...editForm, notes: e.target.value})}
+                      rows={3}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Add any notes about this order..."
+                    />
+                  ) : (
+                    <div className="p-3 bg-white rounded border">
+                      {selectedOrder.notes || 'No notes added'}
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Items */}
+                <div className="p-6 bg-green-50 rounded-lg mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-medium text-gray-900">Order Items</h4>
+                    {isEditing && (
+                      <button
+                        type="button"
+                        onClick={addItem}
+                        className="inline-flex items-center px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Add Product
+                      </button>
+                    )}
+                  </div>
+                  
+                  {isEditing ? (
+                    // Edit Mode - Editable Items
+                    <div className="space-y-4">
+                      {editForm.items.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                          <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                          <p>No items in this order.</p>
+                          <button
+                            type="button"
+                            onClick={addItem}
+                            className="mt-4 inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add First Product
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="border border-gray-200 rounded-md overflow-hidden">
+                            <table className="min-w-full divide-y divide-gray-200">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Unit Price</th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total</th>
+                                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody className="bg-white divide-y divide-gray-200">
+                                {editForm.items.map((item, index) => (
+                                  <tr key={index}>
+                                    <td className="px-4 py-2">
+                                      <div className="relative">
+                                        <input
+                                          type="text"
+                                          value={item.product_name || ''}
+                                          placeholder="Search or type product name..."
+                                          onChange={(e) => {
+                                            setProductSearch(e.target.value);
+                                            setShowProductDropdown(true);
+                                            setEditingItemIndex(index);
+                                          }}
+                                          onFocus={(e) => showDropdown(index, e)}
+                                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                      </div>
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <input
+                                        type="number"
+                                        min="1"
+                                        value={item.quantity}
+                                        onChange={(e) => updateItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                                        className="w-20 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="0.01"
+                                        value={item.unit_price}
+                                        onChange={(e) => updateItem(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                                        className="w-24 px-2 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                      />
+                                    </td>
+                                    <td className="px-4 py-2 text-sm text-gray-900">
+                                      {formatCurrency(item.total_price)}
+                                    </td>
+                                    <td className="px-4 py-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => removeItem(index)}
+                                        className="text-red-600 hover:text-red-800"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                          <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                            <span className="text-lg font-medium text-gray-900">Total:</span>
+                            <span className="text-lg font-bold text-gray-900">
+                              {formatCurrency(editForm.items.reduce((sum, item) => sum + item.total_price, 0))}
+                            </span>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  ) : (
+                    // View Mode - Read-only Items
+                    <div className="space-y-4">
+                      {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                        <>
+                          {selectedOrder.items.map((item, index) => (
+                            <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">
+                                  {item.product?.product_name || `Product ${item.product_id}`}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  Code: {item.product?.product_code || 'No Code'} | 
+                                  Qty: {item.quantity} | 
+                                  Price: {formatCurrency(item.unit_price)}
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-medium text-gray-900">
+                                  {formatCurrency(item.total_price)}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                            <span className="text-lg font-medium text-gray-900">Total:</span>
+                            <span className="text-lg font-bold text-gray-900">
+                              {formatCurrency(selectedOrder.items.reduce((sum, item) => sum + item.total_price, 0))}
+                            </span>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-center py-8 text-gray-500">
+                          <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                          <p>No items in this order.</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                  {isEditing ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={cancelEditing}
+                        className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={submitting}
+                        className="px-6 py-3 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {submitting ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={closeViewModal}
+                      className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    >
+                      Close
+                    </button>
+                  )}
+                </div>
+              </form>
+            ) : (
+              <>
+                {/* Order Info */}
+                <div className="p-6 bg-gray-50 rounded-lg mb-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Order Information</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Order Number
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedOrder.so_number}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Customer
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedOrder.customer_name || selectedOrder.customer?.name || 'Unknown'}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Order Date
+                      </label>
+                      <input
+                        type="text"
+                        value={formatDate(selectedOrder.order_date)}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Status
+                      </label>
+                      <input
+                        type="text"
+                                                  value={selectedOrder.status || 'draft'}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Expected Delivery Date
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedOrder.expected_delivery_date ? formatDate(selectedOrder.expected_delivery_date) : 'Not set'}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Total Amount
+                      </label>
+                      <input
+                        type="text"
+                        value={formatCurrency(selectedOrder.total_amount)}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Order Notes */}
+                <div className="p-6 bg-yellow-50 rounded-lg mb-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Order Notes</h4>
+                  <div className="p-3 bg-white rounded border">
+                    {selectedOrder.notes || 'No notes added'}
+                  </div>
+                </div>
+
+                {/* Order Items */}
+                <div className="p-6 bg-green-50 rounded-lg mb-6">
+                  <h4 className="text-lg font-medium text-gray-900 mb-4">Order Items</h4>
+                  <div className="space-y-4">
+                    {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                      <>
+                        {selectedOrder.items.map((item, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900">
+                                {item.product?.product_name || `Product ${item.product_id}`}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                Code: {item.product?.product_code || 'No Code'} | 
+                                Qty: {item.quantity} | 
+                                Price: {formatCurrency(item.unit_price)}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium text-gray-900">
+                                {formatCurrency(item.total_price)}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+                          <span className="text-lg font-medium text-gray-900">Total:</span>
+                          <span className="text-lg font-bold text-gray-900">
+                            {formatCurrency(selectedOrder.items.reduce((sum, item) => sum + item.total_price, 0))}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-gray-500">
+                        <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                        <p>No items in this order.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+              {isEditing ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={cancelEditing}
+                    className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-6 py-3 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {submitting ? 'Saving...' : 'Save Changes'}
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={closeViewModal}
+                  className="px-6 py-3 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                >
+                  Close
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+        )}
+
+        {/* Product Dropdown Portal */}
+        {showProductDropdown && editingItemIndex !== null && createPortal(
+          <div 
+            className="fixed bg-white border-2 border-blue-300 rounded-lg shadow-2xl max-h-60 overflow-auto z-[999999]"
+            style={{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              width: dropdownPosition.width,
+              zIndex: 999999
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Search Input in Dropdown */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 p-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Search products..."
+                  value={productSearch}
+                  onChange={(e) => setProductSearch(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+                {productSearch && (
+                  <button
+                    onClick={() => setProductSearch('')}
+                    className="px-2 py-2 text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            </div>
+            {products.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-gray-500">Loading products...</div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="px-3 py-2 text-sm text-gray-500">
+                <div className="p-2">No products found</div>
+                <div className="p-2 text-xs text-gray-400">Try a different search term</div>
+              </div>
+            ) : (
+              <>
+                {/* Quick Add Section */}
+                <div className="px-3 py-2 bg-blue-50 border-b border-blue-200">
+                  <div className="text-xs font-medium text-blue-700 mb-1">Quick Add Products</div>
+                  <div className="text-xs text-blue-600">Click any product below to add it</div>
+                </div>
+                
+                {/* Product List */}
+                {filteredProducts.slice(0, 15).map((product) => (
+                  <div
+                    key={product.id}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Product clicked:', product.product_name, 'for index:', editingItemIndex);
+                      selectProduct(product, editingItemIndex);
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                    }}
+                    className="px-3 py-3 text-sm hover:bg-blue-50 cursor-pointer border-b border-gray-100 transition-colors"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="font-medium text-gray-900">{product.product_name}</div>
+                        <div className="text-gray-500 text-xs">Code: {product.product_code}</div>
+                        {product.category && (
+                          <div className="text-gray-400 text-xs">Category: {product.category}</div>
+                        )}
+                      </div>
+                      <div className="text-right ml-2">
+                        <div className="text-xs font-medium text-green-600">
+                          {formatCurrency(product.selling_price || 0)}
+                        </div>
+                        <div className="text-xs text-gray-400">per unit</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                
+                {filteredProducts.length > 15 && (
+                  <div className="px-3 py-2 text-xs text-gray-500 bg-gray-50">
+                    Showing first 15 of {filteredProducts.length} products
+                  </div>
+                )}
+              </>
+            )}
+          </div>,
+          document.body
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default CustomerOrdersPage; 

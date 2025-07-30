@@ -56,7 +56,13 @@ export interface Customer {
   updated_at: string;
   name?: string; // Added for Clients table compatibility
   tax_pin?: string; // Added for Clients table compatibility
+  contact?: string; // Added for Clients table compatibility
+  balance?: string; // Added for Clients table compatibility
+  status?: number; // Added for Clients table compatibility
 }
+
+// Tax type definitions
+export type TaxType = '16%' | 'zero_rated' | 'exempted';
 
 export interface Product {
   id: number;
@@ -72,6 +78,7 @@ export interface Product {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  tax_type?: TaxType; // Default tax type for the product
 }
 
 export interface PurchaseOrder {
@@ -108,6 +115,7 @@ export interface SalesOrder {
   id: number;
   so_number: string;
   customer_id: number;
+  client_id?: number; // Added for database compatibility
   order_date: string;
   expected_delivery_date?: string;
   status: 'draft' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'in payment' | 'paid';
@@ -143,6 +151,8 @@ export interface SalesOrderItem {
   product?: Product;
   net_price?: number;
   tax_amount?: number;
+  tax_type?: TaxType;
+  tax_rate?: number; // 0.16 for 16%, 0 for zero_rated, 0 for exempted
 }
 
 export interface Receipt {
@@ -233,10 +243,10 @@ export interface PaginatedResponse<T> {
   success: boolean;
   data: T[];
   pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+    current_page: number;
+    total_pages: number;
+    total_items: number;
+    items_per_page: number;
   };
 }
 
@@ -282,6 +292,7 @@ export interface CreateSalesOrderForm {
     product_id: number;
     quantity: number;
     unit_price: number;
+    tax_type?: TaxType;
   }[];
 }
 

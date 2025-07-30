@@ -25,6 +25,8 @@ import FinancialDashboardPage from './pages/FinancialDashboardPage';
 import PurchaseOrderPage from './pages/PurchaseOrderPage';
 import PurchaseOrdersPage from './pages/PurchaseOrdersPage';
 import PurchaseOrderDetailsPage from './pages/PurchaseOrderDetailsPage';
+import CreateCustomerOrderPage from './pages/CreateCustomerOrderPage';
+import CustomerOrdersPage from './pages/CustomerOrdersPage';
 import ReceiveItemsPage from './pages/ReceiveItemsPage';
 import StoreInventoryPage from './pages/StoreInventoryPage';
 import PayablesPage from './pages/PayablesPage';
@@ -96,6 +98,12 @@ import ClientActivityPage from './pages/ClientActivityPage';
 import AssetsPage from './pages/AssetsPage';
 import ExpensesPage from './pages/ExpensesPage';
 import ClientProfilePage from './pages/ClientProfilePage';
+import PostReceiptPage from './pages/PostReceiptPage';
+import ViewReceiptsPage from './pages/ViewReceiptsPage';
+import SuppliersManagementPage from './pages/SuppliersManagementPage';
+import MyAssetsPage from './pages/MyAssetsPage';
+import PostFaultyProductsPage from './pages/PostFaultyProductsPage';
+import ViewFaultyReportsPage from './pages/ViewFaultyReportsPage';
 import InventoryStaffDashboardPage from './pages/InventoryStaffDashboardPage';
 import RoleBasedRoute from './components/RoleBasedRoute';
 import UploadDocumentPage from './pages/UploadDocumentPage';
@@ -192,6 +200,22 @@ const App = () => {
           <Route path="/dashboard/clients/add" element={<AddClientPage />} />
           <Route path="/dashboard/clients/:id/branches" element={<ClientBranchesPage />} />
           <Route path="/financial/purchase-order" element={<PurchaseOrderPage />} />
+          <Route path="/financial/create-customer-order" element={<CreateCustomerOrderPage />} />
+          <Route path="/financial/customer-orders" element={<CustomerOrdersPage />} />
+          <Route path="/financial/post-receipt" element={<PostReceiptPage />} />
+        <Route path="/financial/view-receipts" element={<ViewReceiptsPage />} />
+        <Route path="/financial/suppliers" element={<SuppliersManagementPage />} />
+        <Route path="/my-assets" element={<MyAssetsPage />} />
+        <Route path="/faulty-products" element={
+          <RoleBasedRoute allowedRoles={['stock', 'admin']} fallbackPath="/">
+            <PostFaultyProductsPage />
+          </RoleBasedRoute>
+        } />
+        <Route path="/faulty-reports" element={
+          <RoleBasedRoute allowedRoles={['stock', 'admin']} fallbackPath="/">
+            <ViewFaultyReportsPage />
+          </RoleBasedRoute>
+        } />
           <Route path="/purchase-orders" element={<PurchaseOrdersPage />} />
           <Route path="/purchase-orders/:id" element={<PurchaseOrderDetailsPage />} />
           <Route path="/receive-items/:purchaseOrderId" element={<ReceiveItemsPage />} />

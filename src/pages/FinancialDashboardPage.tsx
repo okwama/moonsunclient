@@ -58,6 +58,8 @@ const FinancialDashboardPage = () => {
 
   const quickActions = [
     { name: 'New Purchase', icon: ShoppingCart, color: 'blue', href: '/financial/purchase-order' },
+    { name: 'Create Customer Order', icon: ShoppingCart, color: 'green', href: '/financial/create-customer-order' },
+    { name: 'View Customer Orders', icon: Package, color: 'indigo', href: '/financial/customer-orders' },
     { name: 'Create Invoice', icon: FileText, color: 'green', href: '/create-invoice' },
     { name: 'Add Expense', icon: DollarSign, color: 'red', href: '/add-expense' },
     { name: 'Chat Room', icon: Notebook, color: 'purple', href: '/chat-room' },
@@ -75,6 +77,7 @@ const FinancialDashboardPage = () => {
     { title: 'Expenses', desc: 'View all expenses', icon: DollarSign, color: 'red', href: '/expenses' },
     { title: 'Products', desc: 'View and manage all products', icon: BoxIcon, color: 'teal', href: '/products' },
     { title: 'Purchase Orders', desc: 'Manage purchase orders', icon: ShoppingCart, color: 'orange', href: '/purchase-orders' },
+    { title: 'Customer Orders', desc: 'View all customer orders', icon: Package, color: 'indigo', href: '/financial/customer-orders' },
     { title: 'Sales Orders', desc: 'Manage sales orders', icon: DollarSign, color: 'red', href: '/all-orders' },
     { title: 'Receipts', desc: 'Record customer payments', icon: CreditCard, color: 'yellow', href: '/receipts' },
     { title: 'Payroll Management', desc: 'Record staff payroll', icon: CreditCard, color: 'yellow', href: '/payroll-management' },
@@ -84,6 +87,7 @@ const FinancialDashboardPage = () => {
   const financialCards = [
     { title: 'Payables', desc: 'View & manage supplier payables', emoji: '💸', href: '/payables', color: 'rose' },
     { title: 'Receivables', desc: 'View & manage customer receivables', emoji: '💰', href: '/receivables', color: 'emerald' },
+    { title: 'Customer Orders', desc: 'View all customer orders', emoji: '📦', href: '/financial/customer-orders', color: 'indigo' },
     { title: 'Pending Payments', desc: 'Review & confirm payments', emoji: '⏰', href: '/pending-payments', color: 'amber' },
     { title: 'Cash & Equivalents', desc: 'View all cash accounts', emoji: '🏦', href: '/cash-equivalents', color: 'blue' }
   ];
