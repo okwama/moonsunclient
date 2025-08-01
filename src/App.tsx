@@ -98,6 +98,10 @@ import ClientActivityPage from './pages/ClientActivityPage';
 import AssetsPage from './pages/AssetsPage';
 import ExpensesPage from './pages/ExpensesPage';
 import ClientProfilePage from './pages/ClientProfilePage';
+import MasterSalesPage from './pages/MasterSalesPage';
+import SalesRepMasterReportPage from './pages/SalesRepMasterReportPage';
+import SalesRepReportsPage from './pages/SalesRepReportsPage';
+import ProductsSaleReportPage from './pages/ProductsSaleReportPage';
 import PostReceiptPage from './pages/PostReceiptPage';
 import ViewReceiptsPage from './pages/ViewReceiptsPage';
 import SuppliersManagementPage from './pages/SuppliersManagementPage';
@@ -276,6 +280,10 @@ const App = () => {
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/sales-dashboard" element={<SalesDashboardPage />} />
+                                <Route path="/master-sales" element={<MasterSalesPage />} />
+                      <Route path="/sales-rep-master-report" element={<SalesRepMasterReportPage />} />
+                      <Route path="/sales-rep-reports/:salesRepId/:clientId" element={<SalesRepReportsPage />} />
+                      <Route path="/products-sale-report" element={<ProductsSaleReportPage />} />
           <Route path="/sales-reps" element={<SalesRepsPage />} />
           <Route path="/sales-reps/:id" element={<SalesRepDetailsPage />} />
           <Route path="/managers" element={<ManagersPage />} />

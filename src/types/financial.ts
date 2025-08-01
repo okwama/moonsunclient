@@ -116,6 +116,7 @@ export interface SalesOrder {
   so_number: string;
   customer_id: number;
   client_id?: number; // Added for database compatibility
+  sales_rep_id?: number; // Added for sales rep relationship
   order_date: string;
   expected_delivery_date?: string;
   status: 'draft' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled' | 'in payment' | 'paid';
@@ -123,19 +124,20 @@ export interface SalesOrder {
   tax_amount: number;
   total_amount: number;
   notes?: string;
+  my_status?: number; // Added for order approval status (0=draft, 1=approved, 2=assigned, 3=in transit, 4=delivered)
   created_by: number;
   created_at: string;
   updated_at: string;
   customer?: Customer;
   items?: SalesOrderItem[];
   created_by_user?: User;
+  salesrep?: string; // Added for sales rep display from SalesRep table
   customer_name?: string;
   country_id?: number;
   countryId?: number;
   country_name?: string;
   region_id?: number;
   region_name?: string;
-  my_status?: number;
   rider_name?: string;
   rider_contact?: string;
 }

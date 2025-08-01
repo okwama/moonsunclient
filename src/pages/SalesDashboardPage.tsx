@@ -282,6 +282,18 @@ const SalesDashboardPage: React.FC = () => {
           >
             Product Performance
           </Link>
+                        <Link
+                to="/master-sales"
+                className="inline-block bg-red-100 text-red-700 font-semibold px-4 py-1 rounded-full text-sm shadow-sm mr-2 cursor-pointer hover:bg-red-200 transition"
+              >
+                Master Sales
+              </Link>
+              <Link
+                to="/sales-rep-master-report"
+                className="inline-block bg-blue-100 text-blue-700 font-semibold px-4 py-1 rounded-full text-sm shadow-sm mr-2 cursor-pointer hover:bg-blue-200 transition"
+              >
+                Sales Rep Report
+              </Link>
           <Link
             to="/my-visibility"
             className="inline-block bg-cyan-100 text-cyan-700 font-semibold px-4 py-1 rounded-full text-sm shadow-sm mr-2 cursor-pointer hover:bg-cyan-200 transition"

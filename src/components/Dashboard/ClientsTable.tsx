@@ -5,14 +5,14 @@ import { Eye, Building2, Filter as FilterIcon, X } from 'lucide-react';
 
 interface ClientsTableProps {
   showBalances?: boolean;
+  searchQuery?: string;
 }
 
-const ClientsTable: React.FC = () => {
+const ClientsTable: React.FC<ClientsTableProps> = ({ searchQuery = '' }) => {
   const navigate = useNavigate();
   const [clients, setClients] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -23,7 +23,6 @@ const ClientsTable: React.FC = () => {
   const [clientTypeFilter, setClientTypeFilter] = useState<string[]>([]);
   const [showFilterModal, setShowFilterModal] = useState(false);
   // Temp filter state for modal
-  const [tempSearch, setTempSearch] = useState(search);
   const [tempCountry, setTempCountry] = useState<string[]>(countryFilter);
   const [tempRegion, setTempRegion] = useState<string[]>(regionFilter);
   const [tempRoute, setTempRoute] = useState<string[]>(routeFilter);
@@ -37,7 +36,7 @@ const ClientsTable: React.FC = () => {
 
   // Filtered clients based on search and dropdowns
   const filteredClients = clients.filter(client => {
-    const searchLower = search.toLowerCase();
+    const searchLower = searchQuery.toLowerCase();
     const matchesSearch =
       (client.name && client.name.toLowerCase().includes(searchLower)) ||
       (client.company_name && client.company_name.toLowerCase().includes(searchLower)) ||
@@ -69,7 +68,7 @@ const ClientsTable: React.FC = () => {
   }, []);
 
   // Reset to first page when search changes
-  useEffect(() => { setPage(1); }, [search]);
+  useEffect(() => { setPage(1); }, [searchQuery]);
 
   if (isLoading) {
     return (
@@ -105,7 +104,6 @@ const ClientsTable: React.FC = () => {
         <button
           className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded shadow hover:bg-gray-100"
           onClick={() => {
-            setTempSearch(search);
             setTempCountry(countryFilter);
             setTempRegion(regionFilter);
             setTempRoute(routeFilter);
@@ -128,13 +126,12 @@ const ClientsTable: React.FC = () => {
             </button>
             <h2 className="text-lg font-bold mb-4">Filter Clients</h2>
             <div className="flex flex-col gap-4">
-              <input
-                type="text"
-                value={tempSearch}
-                onChange={e => setTempSearch(e.target.value)}
-                placeholder="Search clients..."
-                className="border border-gray-300 rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-red-200"
-              />
+              <div className="text-sm text-gray-600 mb-2">
+                Search is handled by the main search bar above. Use the filters below to refine results.
+              </div>
+              <div className="text-sm text-gray-500 p-2 bg-gray-50 rounded border">
+                Current search: "{searchQuery || 'None'}"
+              </div>
               <div className="flex flex-wrap gap-2">
                 <select
                   multiple
@@ -182,19 +179,17 @@ const ClientsTable: React.FC = () => {
               <button
                 className="px-4 py-2 rounded bg-gray-200 text-gray-700 hover:bg-gray-300 border border-gray-300"
                 onClick={() => {
-                  setTempSearch('');
                   setTempCountry([]);
                   setTempRegion([]);
                   setTempRoute([]);
                   setTempClientType([]);
                 }}
               >
-                Clear All
+                Clear Filters
               </button>
               <button
                 className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 border border-red-600"
                 onClick={() => {
-                  setSearch(tempSearch);
                   setCountryFilter(tempCountry);
                   setRegionFilter(tempRegion);
                   setRouteFilter(tempRoute);

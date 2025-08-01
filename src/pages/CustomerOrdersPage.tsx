@@ -161,6 +161,17 @@ const CustomerOrdersPage: React.FC = () => {
     return statusMap[status] || 'Unknown';
   };
 
+  const getMyStatusText = (my_status?: number) => {
+    const statusMap: { [key: number]: string } = {
+      0: 'Draft',
+      1: 'Approved',
+      2: 'Assigned',
+      3: 'In Transit',
+      4: 'Delivered'
+    };
+    return statusMap[my_status || 0] || 'Unknown';
+  };
+
   const openViewModal = (order: SalesOrder) => {
     setSelectedOrder(order);
     setShowViewModal(true);
@@ -354,20 +365,10 @@ const CustomerOrdersPage: React.FC = () => {
     try {
       setSubmitting(true);
       
-      // Prepare invoice data
+      // Prepare minimal invoice data - backend will handle the rest
       const invoiceData = {
-        client_id: selectedOrder.client_id || selectedOrder.customer_id,
-        order_date: selectedOrder.order_date,
         expected_delivery_date: selectedOrder.expected_delivery_date,
-        notes: selectedOrder.notes,
-        status: 'confirmed', // Set status to confirmed for invoice
-        total_amount: selectedOrder.total_amount,
-        items: selectedOrder.items?.map(item => ({
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          total_price: item.total_price
-        })) || []
+        notes: selectedOrder.notes
       };
 
       console.log('Converting to invoice with data:', invoiceData);
@@ -492,6 +493,9 @@ const CustomerOrdersPage: React.FC = () => {
                       Customer
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sales Rep
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -499,6 +503,9 @@ const CustomerOrdersPage: React.FC = () => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Approval Status
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -544,6 +551,23 @@ const CustomerOrdersPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                              <User className="h-4 w-4 text-green-600" />
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {order.salesrep || order.created_by_user?.full_name || 'Unknown'}
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Sales Representative
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
                           <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                           <div className="text-sm text-gray-900">
                             {formatDate(order.order_date)}
@@ -560,6 +584,15 @@ const CustomerOrdersPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {getStatusBadge(order.status)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          order.my_status === 1 ? 'bg-green-100 text-green-800' :
+                          order.my_status === 0 ? 'bg-gray-100 text-gray-800' :
+                          'bg-blue-100 text-blue-800'
+                        }`}>
+                          {getMyStatusText(order.my_status)}
+                        </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <button
@@ -603,7 +636,7 @@ const CustomerOrdersPage: React.FC = () => {
                           <Edit className="h-4 w-4 mr-1" />
                           Edit Order
                         </button>
-                        {selectedOrder.status === 'confirmed' && (
+                        {selectedOrder.status === 'draft' && (
                           <button
                             onClick={convertToInvoice}
                             className="inline-flex items-center px-3 py-2 text-sm font-medium text-green-600 bg-green-50 border border-green-200 rounded-md hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-green-500"
@@ -725,11 +758,33 @@ const CustomerOrdersPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Sales Representative
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedOrder.salesrep || selectedOrder.created_by_user?.full_name || 'Unknown'}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Total Amount
                       </label>
                       <input
                         type="text"
                         value={isEditing ? formatCurrency(editForm.items.reduce((sum, item) => sum + item.total_price, 0)) : formatCurrency(selectedOrder.total_amount)}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Approval Status
+                      </label>
+                      <input
+                        type="text"
+                        value={getMyStatusText(selectedOrder.my_status)}
                         disabled
                         className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
                       />
@@ -998,11 +1053,33 @@ const CustomerOrdersPage: React.FC = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Sales Representative
+                      </label>
+                      <input
+                        type="text"
+                        value={selectedOrder.salesrep || selectedOrder.created_by_user?.full_name || 'Unknown'}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Total Amount
                       </label>
                       <input
                         type="text"
                         value={formatCurrency(selectedOrder.total_amount)}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Approval Status
+                      </label>
+                      <input
+                        type="text"
+                        value={getMyStatusText(selectedOrder.my_status)}
                         disabled
                         className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
                       />

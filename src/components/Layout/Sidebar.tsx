@@ -106,6 +106,24 @@ const navigation = [
     icon: BarChart3,
     roles: ['admin', 'manager', 'accountant']
   },
+                {
+                name: 'Master Sales',
+                href: '/master-sales',
+                icon: BarChart3,
+                roles: ['admin', 'manager', 'accountant', 'sales']
+              },
+              {
+                name: 'Sales Rep Master Report',
+                href: '/sales-rep-master-report',
+                icon: UsersIcon,
+                roles: ['admin', 'manager', 'accountant', 'sales']
+              },
+              {
+                name: 'Products Sale Report',
+                href: '/products-sale-report',
+                icon: BarChart3,
+                roles: ['admin', 'manager', 'accountant', 'sales']
+              },
   {
     name: 'Balance Sheet',
     href: '/reports/balance-sheet',

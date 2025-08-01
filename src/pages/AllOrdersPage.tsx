@@ -48,7 +48,11 @@ const AllOrdersPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      console.log('Fetching sales orders...');
       const soRes = await salesOrdersService.getAll();
+      console.log('Sales orders response:', soRes);
+      console.log('Sales orders data:', soRes.data);
+      
       const soRows: SalesOrderRow[] = (soRes.data || []).map((so: SalesOrder & { customer_name?: string }) => ({
         id: so.id,
         order_number: so.so_number,
@@ -57,8 +61,11 @@ const AllOrdersPage: React.FC = () => {
         status: so.status,
         total_amount: so.total_amount
       }));
+      
+      console.log('Processed sales orders:', soRows);
       setOrders(soRows.sort((a, b) => new Date(b.order_date).getTime() - new Date(a.order_date).getTime()));
     } catch (err) {
+      console.error('Error fetching sales orders:', err);
       setError('Failed to fetch sales orders');
     } finally {
       setLoading(false);
@@ -162,8 +169,28 @@ const AllOrdersPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Sales Orders</h1>
-          <p className="mt-2 text-sm text-gray-600">View all sales orders</p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Sales Orders</h1>
+              <p className="mt-2 text-sm text-gray-600">View all sales orders</p>
+            </div>
+            <div className="flex gap-2">
+              <Link
+                to="/products-sale-report"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+              >
+                Products Sale Report
+              </Link>
+            </div>
+          </div>
+          {/* Debug Info */}
+          <div className="mt-4 p-4 bg-gray-100 rounded">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Debug Info:</h3>
+            <p className="text-xs text-gray-600">Total Orders: {orders.length}</p>
+            <p className="text-xs text-gray-600">Filtered Orders: {filteredOrders.length}</p>
+            <p className="text-xs text-gray-600">Loading: {loading ? 'Yes' : 'No'}</p>
+            <p className="text-xs text-gray-600">Error: {error || 'None'}</p>
+          </div>
         </div>
         {/* Filter Button */}
         <div className="mb-4 flex justify-end">

@@ -32,6 +32,24 @@ export interface Country { id: number; name: string; }
 export interface Region { id: number; name: string; country_id?: number; }
 export interface Route { id: number; name: string; }
 
+export interface MasterSalesData {
+  client_id: number;
+  client_name: string;
+  january: number;
+  february: number;
+  march: number;
+  april: number;
+  may: number;
+  june: number;
+  july: number;
+  august: number;
+  september: number;
+  october: number;
+  november: number;
+  december: number;
+  total: number;
+}
+
 const API_BASE_URL = '/api/sales';
 
 export const salesService = {
@@ -90,6 +108,26 @@ export const salesService = {
   // Fetch routes
   getRoutes: async (): Promise<Route[]> => {
     const response = await axios.get(`${API_BASE_URL}/routes`);
+    return response.data;
+  },
+
+  // Get master sales data for all clients by year
+  getMasterSalesData: async (year: number, category?: number[], salesRep?: number[], categoryGroup?: string, startDate?: string, endDate?: string, clientStatus?: string): Promise<MasterSalesData[]> => {
+    const response = await axios.get(`${API_BASE_URL}/master-sales`, {
+      params: { year, category, salesRep, categoryGroup, startDate, endDate, clientStatus }
+    });
+    return response.data;
+  },
+
+  // Get available categories for master sales filter
+  getMasterSalesCategories: async (): Promise<{ id: number; name: string }[]> => {
+    const response = await axios.get(`${API_BASE_URL}/master-sales/categories`);
+    return response.data;
+  },
+
+  // Get available sales reps for master sales filter
+  getMasterSalesSalesReps: async (): Promise<{ id: number; name: string }[]> => {
+    const response = await axios.get(`${API_BASE_URL}/master-sales/sales-reps`);
     return response.data;
   }
 }; 
