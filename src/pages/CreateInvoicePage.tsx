@@ -17,8 +17,7 @@ import {
 } from '../services/financialService';
 import { 
   Customer, 
-  Product, 
-  CreateInvoiceForm 
+  Product
 } from '../types/financial';
 
 interface InvoiceItem {
@@ -59,10 +58,10 @@ const CreateInvoicePage: React.FC = () => {
       ]);
 
       if (customersRes.success) {
-        setCustomers(customersRes.data);
+        setCustomers(customersRes.data || []);
       }
       if (productsRes.success) {
-        setProducts(productsRes.data);
+        setProducts(productsRes.data || []);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data');
@@ -192,7 +191,7 @@ const CreateInvoicePage: React.FC = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-8 px-4">
+    <div className="max-w-4xl mx-auto py-8 px-4">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Create Customer Invoice</h1>
       </div>

@@ -56,26 +56,35 @@ const ProductsSaleReportPage: React.FC = () => {
     setError(null);
     try {
       console.log('Fetching products sale data...');
+      console.log('Date range:', filters.startDate, 'to', filters.endDate);
       
       const params = new URLSearchParams({
         startDate: filters.startDate,
         endDate: filters.endDate
       });
 
-      const response = await fetch(`/api/financial/products-sale-report?${params}`);
+      const url = `/api/financial/products-sale-report?${params}`;
+      console.log('API URL:', url);
+
+      const response = await fetch(url);
+      console.log('Response status:', response.status);
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch products sale data');
+        throw new Error(`HTTP ${response.status}: Failed to fetch products sale data`);
       }
       
       const data = await response.json();
       console.log('Products sale data received:', data);
       
       if (data.success) {
+        console.log('Products data:', data.data);
+        console.log('Number of products:', data.data?.length || 0);
         setProducts(data.data || []);
         
         // Extract unique categories for filter
-        const uniqueCategories = Array.from(new Set(data.data.map((p: ProductSaleData) => p.category_name).filter(Boolean)));
+        const uniqueCategories = Array.from(new Set(data.data.map((p: ProductSaleData) => p.category_name).filter(Boolean))) as string[];
         setCategories(uniqueCategories);
+        console.log('Unique categories:', uniqueCategories);
       } else {
         throw new Error(data.error || 'Failed to fetch products sale data');
       }
@@ -238,6 +247,15 @@ const ProductsSaleReportPage: React.FC = () => {
           <p className="mt-2 text-sm text-gray-700">
             Products sold from {filters.startDate} to {filters.endDate}
           </p>
+          {/* Debug Info */}
+          <div className="mt-4 p-4 bg-gray-100 rounded">
+            <h3 className="text-sm font-semibold text-gray-700 mb-2">Debug Info:</h3>
+            <p className="text-xs text-gray-600">Total Products: {products.length}</p>
+            <p className="text-xs text-gray-600">Filtered Products: {filteredProducts.length}</p>
+            <p className="text-xs text-gray-600">Loading: {loading ? 'Yes' : 'No'}</p>
+            <p className="text-xs text-gray-600">Error: {error || 'None'}</p>
+            <p className="text-xs text-gray-600">Categories: {categories.length}</p>
+          </div>
         </div>
         <div className="mt-4 sm:mt-0 sm:ml-16 sm:flex-none flex gap-2">
           <button

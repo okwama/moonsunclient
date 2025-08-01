@@ -49,9 +49,13 @@ const AllOrdersPage: React.FC = () => {
     setError(null);
     try {
       console.log('Fetching sales orders...');
+      console.log('API URL:', `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/financial/sales-orders`);
+      
       const soRes = await salesOrdersService.getAll();
       console.log('Sales orders response:', soRes);
       console.log('Sales orders data:', soRes.data);
+      console.log('Response success:', soRes.success);
+      console.log('Response error:', soRes.error);
       
       const soRows: SalesOrderRow[] = (soRes.data || []).map((so: SalesOrder & { customer_name?: string }) => ({
         id: so.id,
@@ -64,9 +68,22 @@ const AllOrdersPage: React.FC = () => {
       
       console.log('Processed sales orders:', soRows);
       setOrders(soRows.sort((a, b) => new Date(b.order_date).getTime() - new Date(a.order_date).getTime()));
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching sales orders:', err);
-      setError('Failed to fetch sales orders');
+      console.error('Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status,
+        statusText: err.response?.statusText
+      });
+      
+      if (err.response?.data?.error) {
+        setError(`Failed to fetch sales orders: ${err.response.data.error}`);
+      } else if (err.message) {
+        setError(`Failed to fetch sales orders: ${err.message}`);
+      } else {
+        setError('Failed to fetch sales orders');
+      }
     } finally {
       setLoading(false);
     }

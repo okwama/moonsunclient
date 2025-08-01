@@ -53,10 +53,14 @@ const SalesOrderDetailsPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string>('');
   const [pendingReceiptId, setPendingReceiptId] = useState<number | null>(null);
+  const [clientOutstandingBalance, setClientOutstandingBalance] = useState<number>(0);
+  const [loadingBalance, setLoadingBalance] = useState(false);
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (id) fetchSalesOrder();
+    if (id) {
+      fetchSalesOrder();
+    }
     // eslint-disable-next-line
   }, [id]);
 
@@ -69,6 +73,10 @@ const SalesOrderDetailsPage: React.FC = () => {
       if (res.success && res.data) {
         setSalesOrder(res.data);
         console.log('Sales order status:', res.data.status);
+        // Fetch outstanding balance after sales order is loaded
+        if (res.data.customer?.id) {
+          fetchClientOutstandingBalance(res.data.customer.id);
+        }
       } else {
         setError(res.error || 'Failed to fetch sales order');
       }
@@ -81,6 +89,24 @@ const SalesOrderDetailsPage: React.FC = () => {
 
   const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
   const formatCurrency = (amount: number) => amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  const fetchClientOutstandingBalance = async (customerId?: number) => {
+    const clientId = customerId || salesOrder?.customer?.id;
+    if (!clientId) return;
+    
+    setLoadingBalance(true);
+    try {
+      const response = await axios.get(`${API_BASE_URL}/financial/clients/${clientId}/outstanding-balance`);
+      if (response.data.success) {
+        setClientOutstandingBalance(response.data.data.outstanding_balance || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching client outstanding balance:', error);
+      setClientOutstandingBalance(0);
+    } finally {
+      setLoadingBalance(false);
+    }
+  };
 
   const fetchJournalEntries = async () => {
     if (!id) return;
@@ -254,9 +280,12 @@ const SalesOrderDetailsPage: React.FC = () => {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
     const imgProps = pdf.getImageProperties(imgData);
-    const pdfWidth = pageWidth;
+    // Use a narrower width for the PDF (80% of page width)
+    const pdfWidth = pageWidth * 0.8;
     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    // Center the image on the page
+    const xOffset = (pageWidth - pdfWidth) / 2;
+    pdf.addImage(imgData, 'PNG', xOffset, 0, pdfWidth, pdfHeight);
     pdf.save(`invoice_${salesOrder?.so_number || id}.pdf`);
   };
 
@@ -341,60 +370,88 @@ const SalesOrderDetailsPage: React.FC = () => {
         </div>
         {/* Everything else INSIDE the ref */}
         <div ref={invoiceRef} className="a4-invoice-print m-2 relative">
-          {/* Logo and Customer Details Row */}
-          <div className="flex items-start justify-between mb-4">
-            <img
-              src="/woosh.jpg"
-              alt="Company Logo"
-              className="h-30 w-auto object-contain"
-              style={{ maxWidth: '150px' }}
-            />
-            <div className="text-right">
-              <p className="text-gray-600 mt-1">Moonsun Trade International Limited</p>
-              <p className="text-gray-600 mt-1">P.O Box 15470, Nairobi Kenya</p>
-              <p className="text-gray-600 mt-1">Pin P051904794X</p>
-              <p className="text-gray-600 mt-1"> </p>
+          {/* Header Section */}
+          <div className="invoice-header mb-6">
+            <div className="flex justify-between items-start">
+              {/* Company Information */}
+              <div className="company-info">
+                <img
+                  src="/woosh.jpg"
+                  alt="Company Logo"
+                  className="h-20 w-auto object-contain mb-2"
+                  style={{ maxWidth: '120px' }}
+                />
+                <h1 className="company-name">Moonsun Trade International Limited</h1>
+                <p className="company-address">P.O Box 15470, Nairobi Kenya</p>
+                <p className="company-tax">Tax PIN: P051904794X</p>
+              </div>
+              
+              {/* Invoice Details */}
+              <div className="invoice-details text-right">
+                <h2 className="invoice-title">INVOICE</h2>
+                <div className="invoice-meta">
+                  <p><strong>Invoice No:</strong> {salesOrder?.so_number || 'N/A'}</p>
+                  <p><strong>Date:</strong> {formatDate(salesOrder?.order_date || '')}</p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-start justify-center mb-4">
-
-            <div className="text-right">
-              <p className="text-gray-600 mt-1 font-semibold">{salesOrder?.customer?.name || 'N/A'}</p>
-              <p className="text-gray-600 mt-1">{salesOrder?.customer?.address || 'N/A'}</p>
-              <p className="text-gray-600 mt-1">{salesOrder?.customer?.tax_pin || 'N/A'}</p>
-
-              <p className="text-gray-600 mt-1"> </p>
+          {/* Bill To Section */}
+          <div className="bill-to-section mb-6">
+            <div className="flex justify-between">
+              <div className="bill-to">
+                <h3 className="section-title">Bill To:</h3>
+                <p className="customer-name">{salesOrder?.customer?.name || 'N/A'}</p>
+                <p className="customer-address">{salesOrder?.customer?.address || 'N/A'}</p>
+                <p className="customer-tax">Tax PIN: {salesOrder?.customer?.tax_pin || 'N/A'}</p>
+              </div>
+              
+              <div className="flex flex-col gap-4">
+                <div className="ship-to">
+                  <h3 className="section-title">Ship To:</h3>
+                  <p className="customer-name">{salesOrder?.customer?.name || 'N/A'}</p>
+                  <p className="customer-address">{salesOrder?.customer?.address || 'N/A'}</p>
+                </div>
+                
+                {/* Outstanding Balance Section */}
+                <div className="outstanding-balance-box">
+                  {/* <h4 className="section-subtitle">Account Summary</h4> */}
+                  <div className="balance-info">
+                    <p><strong>Outstanding Balance:</strong></p>
+                    <p className="balance-amount">
+                      {loadingBalance ? 'Loading...' : formatCurrency(clientOutstandingBalance)}
+                    </p>
+                    <p className="balance-note">* Balance as of invoice date</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-          {/* Items Sold and Order Summary below */}
-          <div className="bg-white shadow rounded-lg p-6 mb-2">
-            <h2 className="text-lg font-semibold mb-4">#{salesOrder?.so_number || 'N/A'}</h2>
+
+          {/* Items Table */}
+          <div className="items-section mb-6">
             {salesOrder?.items && salesOrder.items.length > 0 ? (
-              <table className="min-w-full divide-y divide-gray-200" style={{ tableLayout: 'fixed', width: '100%' }}>
-                <thead className="bg-gray-50">
+              <table className="invoice-table">
+                <thead>
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '250px' }}>Product</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '80px' }}>Quantity</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '150px' }}>Unit Price (Before Tax)</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '120px' }}>Tax Amount</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '130px' }}>Subtotal</th>
+                    <th className="item-col">Item</th>
+                    <th className="qty-col">Qty</th>
+                    <th className="price-col">Unit Price</th>
+                    <th className="tax-col">Tax</th>
+                    <th className="total-col">Total</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody>
                   {salesOrder.items.map((item) => (
                     <tr key={item.id}>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900" style={{ width: '250px' }}>{item.product?.product_name || 'N/A'}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700" style={{ width: '80px' }}>{item.quantity}</td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700" style={{ width: '150px' }}>
+                      <td className="item-col">{item.product?.product_name || 'N/A'}</td>
+                      <td className="qty-col">{item.quantity}</td>
+                      <td className="price-col">
                         {item.net_price ? formatCurrency(item.net_price / item.quantity) : formatCurrency(item.unit_price / 1.16)}
                       </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700" style={{ width: '120px' }}>
-                        {formatCurrency(item.tax_amount || 0)}
-                      </td>
-                      <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-700" style={{ width: '130px' }}>
-                        {formatCurrency(item.total_price)}
-                      </td>
+                      <td className="tax-col">{formatCurrency(item.tax_amount || 0)}</td>
+                      <td className="total-col">{formatCurrency(item.total_price)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -402,34 +459,55 @@ const SalesOrderDetailsPage: React.FC = () => {
             ) : (
               <p className="text-gray-500">No items found for this sales order.</p>
             )}
-            <div className="flex justify-end mt-4">
-              <table className="w-40 text-sm">
+          </div>
+
+          {/* Totals Section */}
+          <div className="totals-section">
+            <div className="flex justify-end">
+              <table className="totals-table">
                 <tbody>
                   <tr>
-                    <td className="text-gray-700 py-1 pr-2">Subtotal:</td>
-                    <td className="text-gray-900 font-medium py-1 text-right">{formatCurrency(salesOrder?.subtotal || 0)}</td>
+                    <td className="label">Subtotal:</td>
+                    <td className="amount">{formatCurrency(salesOrder?.subtotal || 0)}</td>
                   </tr>
                   <tr>
-                    <td className="text-gray-700 py-1 pr-2">Tax:</td>
-                    <td className="text-gray-900 font-medium py-1 text-right">{formatCurrency(salesOrder?.tax_amount || 0)}</td>
+                    <td className="label">VAT (16%):</td>
+                    <td className="amount">{formatCurrency(salesOrder?.tax_amount || 0)}</td>
                   </tr>
-                  <tr>
-                    <td className="text-gray-700 py-1 pr-2">Total:</td>
-                    <td className="text-gray-900 font-bold py-1 text-right">{formatCurrency(salesOrder?.total_amount || 0)}</td>
+                  <tr className="total-row">
+                    <td className="label">Total:</td>
+                    <td className="amount">{formatCurrency(salesOrder?.total_amount || 0)}</td>
                   </tr>
                 </tbody>
               </table>
             </div>
           </div>
-          {/* Order Summary */}
 
           {/* Footer */}
-          <div className="invoice-footer absolute bottom-0 left-0 w-full text-center text-xs text-gray-400 py-2">
-            <p className="text-gray-500">Bank Transfer/ Cheque/ Mpesa</p>
-            <p className="text-gray-500">Account Name: Moonsun Trade International Ltd. Bank: Diamond Trust Bank. Branch: Westgate.</p>
-            <p className="text-gray-500">Branch Code: 006. Swift:DTKEKENA. KES A/C: 0035504001. USD A/C: 0035504002</p>
-            <p className="text-gray-500">Mpesa Paybill: 516600 Account No: 946057#Invoice No or Name</p>
-            <p className="text-gray-500">Strictly No Cash Payments</p>
+          <div className="invoice-footer">
+            <div className="footer-content">
+              <div className="grid grid-cols-2 gap-8 mb-4">
+                <div className="payment-info">
+                  <h4 className="section-subtitle">Payment Information</h4>
+                  <p><strong>Bank:</strong> Diamond Trust Bank</p>
+                  <p><strong>Branch:</strong> Westgate</p>
+                  <p><strong>Account:</strong> 0035504001 (KES)</p>
+                  <p><strong>Swift:</strong> DTKEKENA</p>
+                  <p><strong>M-Pesa:</strong> Paybill 516600</p>
+                </div>
+                <div className="terms">
+                  <h4 className="section-subtitle">Terms & Conditions</h4>
+                  <p>• Payment due within 30 days</p>
+                  <p>• Late payment may incur additional charges</p>
+                  <p>• Goods remain property until payment is received</p>
+                  <p>• Strictly no cash payments</p>
+                </div>
+              </div>
+              <div className="footer-message">
+                <p>Thank you for your business!</p>
+                <p>For any queries, please contact us at info@moonsun.com</p>
+              </div>
+            </div>
           </div>
           {/* Journal Entries Modal */}
           {showJournalModal && (
