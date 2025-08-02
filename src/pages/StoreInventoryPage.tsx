@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { storeService } from '../services/storeService';
 import { StoreInventory, StoreInventorySummary } from '../types/financial';
-import { inventoryAsOfService } from '../services/financialService';
+import { inventoryAsOfService, categoriesService } from '../services/financialService';
 
 const StoreInventoryPage: React.FC = () => {
   const [inventorySummary, setInventorySummary] = useState<StoreInventorySummary[]>([]);
   const [allInventory, setAllInventory] = useState<StoreInventory[]>([]);
   const [selectedStore, setSelectedStore] = useState<number | 'all'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [stores, setStores] = useState<{ id: number; store_name: string; store_code: string }[]>([]);
+  const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
@@ -75,6 +77,12 @@ const StoreInventoryPage: React.FC = () => {
       if (inventoryResponse.success) {
         setAllInventory(inventoryResponse.data || []);
       }
+
+      // Fetch all categories
+      const categoriesResponse = await categoriesService.getAll();
+      if (categoriesResponse.success) {
+        setCategories(categoriesResponse.data || []);
+      }
     } catch (err) {
       setError('Failed to fetch inventory data');
     } finally {
@@ -83,11 +91,19 @@ const StoreInventoryPage: React.FC = () => {
   };
 
   const getFilteredInventory = () => {
-    if (asOfInventory) return asOfInventory;
-    if (selectedStore === 'all') {
-      return allInventory;
+    let filtered = asOfInventory || allInventory;
+    
+    // Filter by store
+    if (selectedStore !== 'all') {
+      filtered = filtered.filter(item => Number(item.store_id) === Number(selectedStore));
     }
-    return allInventory.filter(item => Number(item.store_id) === Number(selectedStore));
+    
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+    
+    return filtered;
   };
 
   const getStoreName = (storeId: number) => {
@@ -103,7 +119,7 @@ const StoreInventoryPage: React.FC = () => {
   };
 
   const getLowStockItems = () => {
-    return allInventory.filter(item => item.quantity <= 10);
+    return getFilteredInventory().filter(item => item.quantity <= 10);
   };
 
   const getTotalInventoryValue = () => {
@@ -296,7 +312,7 @@ const StoreInventoryPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Store Filter and Date Filter */}
+        {/* Store Filter, Category Filter and Date Filter */}
         <div className="mb-6 flex flex-col md:flex-row md:items-end gap-4">
           <div>
             <label htmlFor="store-filter" className="block text-sm font-medium text-gray-700 mb-2">
@@ -319,6 +335,27 @@ const StoreInventoryPage: React.FC = () => {
               ))}
             </select>
           </div>
+          <div>
+            <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700 mb-2">
+              Filter by Category
+            </label>
+            <select
+              id="category-filter"
+              value={selectedCategory}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSelectedCategory(value);
+              }}
+              className="block w-64 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+            >
+              <option value="all">All Categories</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.name}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div hidden>
             <label htmlFor="date-filter" className="block text-sm font-medium text-gray-700 mb-2">
               Inventory as of Date
@@ -335,13 +372,18 @@ const StoreInventoryPage: React.FC = () => {
         </div>
 
         {/* Inventory Table */}
-        {selectedStore !== 'all' && (
-          <div className="mb-4">
+        <div className="mb-4 flex flex-wrap gap-2">
+          {selectedStore !== 'all' && (
             <span className="inline-block bg-blue-100 text-blue-800 text-sm font-semibold px-3 py-1 rounded-full">
               Store: {getStoreName(selectedStore as number)}
             </span>
-          </div>
-        )}
+          )}
+          {selectedCategory !== 'all' && (
+            <span className="inline-block bg-green-100 text-green-800 text-sm font-semibold px-3 py-1 rounded-full">
+              Category: {selectedCategory}
+            </span>
+          )}
+        </div>
         {filteredInventory.length === 0 ? (
             <div className="text-center py-12">
               <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -576,4 +576,32 @@ export const stockTransferService = {
   }
 };
 
+// Categories Service
+export const categoriesService = {
+  getAll: async (): Promise<ApiResponse<{ id: number; name: string }[]>> => {
+    const response = await axios.get(`${API_BASE_URL}/financial/categories`);
+    return response.data;
+  },
+
+  getById: async (id: number): Promise<ApiResponse<{ id: number; name: string }>> => {
+    const response = await axios.get(`${API_BASE_URL}/financial/categories/${id}`);
+    return response.data;
+  },
+
+  create: async (category: { name: string }): Promise<ApiResponse<{ id: number; name: string }>> => {
+    const response = await axios.post(`${API_BASE_URL}/financial/categories`, category);
+    return response.data;
+  },
+
+  update: async (id: number, category: { name: string }): Promise<ApiResponse<void>> => {
+    const response = await axios.put(`${API_BASE_URL}/financial/categories/${id}`, category);
+    return response.data;
+  },
+
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await axios.delete(`${API_BASE_URL}/financial/categories/${id}`);
+    return response.data;
+  }
+};
+
  
