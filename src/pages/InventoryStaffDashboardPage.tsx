@@ -348,7 +348,7 @@ const InventoryStaffDashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
         {/* Header Section */}
         <div className="mb-8">
@@ -395,31 +395,6 @@ const InventoryStaffDashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Store Filter */}
-        <div className="mb-8">
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-            <label htmlFor="store-filter" className="block text-sm font-semibold text-gray-700 mb-3">
-              Filter by Store
-            </label>
-            <select
-              id="store-filter"
-              value={selectedStore}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSelectedStore(value === 'all' ? 'all' : Number(value));
-              }}
-              className="block w-full max-w-md border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500 text-base"
-            >
-              <option value="all">All Stores</option>
-              {stores.map((store) => (
-                <option key={store.id} value={store.id}>
-                  {store.store_name} ({store.store_code})
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200">
@@ -450,22 +425,6 @@ const InventoryStaffDashboardPage: React.FC = () => {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Items</p>
                 <p className="text-2xl font-bold text-gray-900">{formatNumber(inventoryStats.totalItems)}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <svg className="h-6 w-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                </div>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Value</p>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(inventoryStats.totalValue)}</p>
               </div>
             </div>
           </div>
@@ -639,7 +598,7 @@ const InventoryStaffDashboardPage: React.FC = () => {
         {/* Quick Actions Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
           <Link
-            to="/store-inventory"
+            to="/inventory-transactions"
             className="group bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 hover:border-blue-200"
           >
             <div className="flex items-center">
