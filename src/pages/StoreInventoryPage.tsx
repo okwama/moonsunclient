@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { storeService } from '../services/storeService';
-import { StoreInventory, StoreInventorySummary } from '../types/financial';
-import { inventoryAsOfService, categoriesService } from '../services/financialService';
+import { StoreInventory, StoreInventorySummary, Product } from '../types/financial';
+import { inventoryAsOfService, categoriesService, productsService } from '../services/financialService';
 
 const StoreInventoryPage: React.FC = () => {
   const [inventorySummary, setInventorySummary] = useState<StoreInventorySummary[]>([]);
@@ -11,10 +11,13 @@ const StoreInventoryPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
   const [stores, setStores] = useState<{ id: number; store_name: string; store_code: string }[]>([]);
   const [categories, setCategories] = useState<{ id: number; name: string }[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [asOfInventory, setAsOfInventory] = useState<any[] | null>(null);
+  const [stockSummaryData, setStockSummaryData] = useState<any>(null);
+  const [stockSummaryCategoryFilter, setStockSummaryCategoryFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchData();
@@ -83,6 +86,18 @@ const StoreInventoryPage: React.FC = () => {
       if (categoriesResponse.success) {
         setCategories(categoriesResponse.data || []);
       }
+
+      // Fetch all products
+      const productsResponse = await productsService.getAll();
+      if (productsResponse.success) {
+        setProducts(productsResponse.data || []);
+      }
+
+      // Fetch stock summary data
+      const stockSummaryResponse = await storeService.getStockSummary();
+      if (stockSummaryResponse.success) {
+        setStockSummaryData(stockSummaryResponse.data);
+      }
     } catch (err) {
       setError('Failed to fetch inventory data');
     } finally {
@@ -104,6 +119,20 @@ const StoreInventoryPage: React.FC = () => {
     }
     
     return filtered;
+  };
+
+  const getFilteredStockSummary = () => {
+    if (!stockSummaryData || !stockSummaryData.products) {
+      return [];
+    }
+    
+    if (stockSummaryCategoryFilter === 'all') {
+      return stockSummaryData.products;
+    }
+    
+    return stockSummaryData.products.filter((product: any) => 
+      product.category === stockSummaryCategoryFilter
+    );
   };
 
   const getStoreName = (storeId: number) => {
@@ -175,6 +204,12 @@ const StoreInventoryPage: React.FC = () => {
               </p>
             </div>
             <div className="flex flex-wrap gap-3 mb-6">
+              <Link
+                to="/update-stock-quantity"
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Update Stock Quantity
+              </Link>
               <Link
                 to="/stock-take"
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
@@ -311,6 +346,124 @@ const StoreInventoryPage: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Stock Summary Table */}
+        {selectedStore === 'all' && stockSummaryData && stockSummaryData.products.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-lg font-medium text-gray-900 mb-4">Stock Summary Across All Stores</h2>
+            
+            {/* Stock Summary Category Filter */}
+            <div className="mb-4">
+              <label htmlFor="stock-summary-category-filter" className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Category
+              </label>
+              <select
+                id="stock-summary-category-filter"
+                value={stockSummaryCategoryFilter}
+                onChange={(e) => setStockSummaryCategoryFilter(e.target.value)}
+                className="block w-64 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              >
+                <option value="all">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.name}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Stock Summary Filter Indicators */}
+            {stockSummaryCategoryFilter !== 'all' && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                <span className="inline-block bg-purple-100 text-purple-800 text-sm font-semibold px-3 py-1 rounded-full">
+                  Category: {stockSummaryCategoryFilter}
+                </span>
+              </div>
+            )}
+
+            {getFilteredStockSummary().length === 0 ? (
+              <div className="text-center py-12 bg-white shadow rounded-lg">
+                <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                </svg>
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No products found</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  {stockSummaryCategoryFilter === 'all' 
+                    ? 'No products found in the stock summary.' 
+                    : `No products found for category "${stockSummaryCategoryFilter}".`}
+                </p>
+              </div>
+            ) : (
+              <div className="bg-white shadow rounded-lg overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 bg-gray-50 z-10">
+                          Product
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Code
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Category
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Total Stock
+                        </th>
+                        {stockSummaryData.stores.map((store: any) => (
+                          <th key={store.id} className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            {store.store_name}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {getFilteredStockSummary().map((product: any) => {
+                        const totalStock = stockSummaryData.stores.reduce((total: number, store: any) => {
+                          return total + (product.store_quantities[store.id] || 0);
+                        }, 0);
+                        
+                        return (
+                          <tr key={product.id} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 sticky left-0 bg-white z-10">
+                              {product.product_name}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {product.product_code}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                              {product.category || '-'}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
+                              {totalStock}
+                            </td>
+                            {stockSummaryData.stores.map((store: any) => {
+                              const quantity = product.store_quantities[store.id] || 0;
+                              return (
+                                <td key={store.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    quantity <= 10 
+                                      ? 'bg-red-100 text-red-800' 
+                                      : quantity <= 50 
+                                      ? 'bg-yellow-100 text-yellow-800' 
+                                      : 'bg-green-100 text-green-800'
+                                  }`}>
+                                    {quantity}
+                                  </span>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Store Filter, Category Filter and Date Filter */}
         <div className="mb-6 flex flex-col md:flex-row md:items-end gap-4">
