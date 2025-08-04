@@ -32,7 +32,7 @@ export interface ApiError extends Error {
 // Validate and get API base URL
 const getApiBaseUrl = (): string => {
   // Hardcoded production URL for testing
-  const PRODUCTION_API_URL = 'https://moonsunserver.vercel.app/api';
+  const PRODUCTION_API_URL = 'https://moonsunserver-r22p5va7h-bryan-otienos-projects.vercel.app/api';
   
   // Check if we're in development mode
   const isDevelopment = import.meta.env.DEV;
@@ -241,4 +241,4 @@ export const apiClient = {
   delete: del,
 };
 
-export default api;
+export default api; 
