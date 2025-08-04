@@ -12,7 +12,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://woosh-server.vercel.app/api/$1"
+      "destination": "https://moonsunserver.vercel.app/api/$1"
     },
     {
       "source": "/(.*)",
@@ -48,6 +48,6 @@
     }
   ],
   "env": {
-    "VITE_API_URL": "https://woosh-server.vercel.app"
+    "VITE_API_URL": "https://moonsunserver.vercel.app"
   }
 }
