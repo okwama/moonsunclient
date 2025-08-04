@@ -731,7 +731,7 @@ const SalesRepsPage: React.FC = () => {
                           className="h-10 w-10 rounded-full object-cover cursor-pointer"
                           onClick={() => setExpandedPhotoUrl(rep.photoUrl!)}
                           onError={(e) => {
-                            e.currentTarget.src = 'https://via.placeholder.com/40x40?text=' + rep.name.charAt(0);
+                            e.currentTarget.src = `${import.meta.env.VITE_PLACEHOLDER_API || 'https://via.placeholder.com'}/40x40?text=` + rep.name.charAt(0);
                           }}
                         />
                       ) : (
