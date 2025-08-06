@@ -140,6 +140,8 @@ export interface SalesOrder {
   region_name?: string;
   rider_name?: string;
   rider_contact?: string;
+  assigned_at?: string;
+  customer_balance?: string;
 }
 
 export interface SalesOrderItem {
@@ -287,6 +289,7 @@ export interface CreatePurchaseOrderForm {
 
 export interface CreateSalesOrderForm {
   customer_id: number;
+  sales_rep_id?: number;
   order_date: string;
   expected_delivery_date?: string;
   notes?: string;

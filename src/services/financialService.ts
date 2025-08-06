@@ -15,7 +15,7 @@ import {
   GeneralLedgerEntry
 } from '../types/financial';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || import.meta.env.VITE_FALLBACK_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Add request interceptor to include auth token
 axios.interceptors.request.use(
@@ -263,6 +263,11 @@ export const purchaseOrdersService = {
 export const salesOrdersService = {
   getAll: async (): Promise<ApiResponse<any[]>> => {
     const response = await axios.get(`${API_BASE_URL}/financial/sales-orders`);
+    return response.data;
+  },
+
+  getAllIncludingDrafts: async (): Promise<ApiResponse<any[]>> => {
+    const response = await axios.get(`${API_BASE_URL}/financial/sales-orders-all`);
     return response.data;
   },
 

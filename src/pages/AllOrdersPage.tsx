@@ -11,6 +11,7 @@ interface SalesOrderRow {
   customer: string;
   order_date: string;
   status: string;
+  my_status: number;
   total_amount: number;
 }
 
@@ -48,10 +49,10 @@ const AllOrdersPage: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      console.log('Fetching sales orders...');
-      console.log('API URL:', `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/financial/sales-orders`);
+      console.log('Fetching all sales orders (including drafts)...');
+      console.log('API URL:', `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/financial/sales-orders-all`);
       
-      const soRes = await salesOrdersService.getAll();
+      const soRes = await salesOrdersService.getAllIncludingDrafts();
       console.log('Sales orders response:', soRes);
       console.log('Sales orders data:', soRes.data);
       console.log('Response success:', soRes.success);
@@ -63,6 +64,7 @@ const AllOrdersPage: React.FC = () => {
         customer: (so.customer_name || so.customer?.company_name || 'N/A'),
         order_date: so.order_date,
         status: so.status,
+        my_status: so.my_status || 0,
         total_amount: so.total_amount
       }));
       
@@ -188,8 +190,8 @@ const AllOrdersPage: React.FC = () => {
         <div className="mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Sales Orders</h1>
-              <p className="mt-2 text-sm text-gray-600">View all sales orders</p>
+              <h1 className="text-3xl font-bold text-gray-900">All Sales Orders</h1>
+              <p className="mt-2 text-sm text-gray-600">View all sales orders including drafts and confirmed orders</p>
             </div>
             <div className="flex gap-2">
               <Link
@@ -201,13 +203,13 @@ const AllOrdersPage: React.FC = () => {
             </div>
           </div>
           {/* Debug Info */}
-          <div className="mt-4 p-4 bg-gray-100 rounded">
+          {/* <div className="mt-4 p-4 bg-gray-100 rounded">
             <h3 className="text-sm font-semibold text-gray-700 mb-2">Debug Info:</h3>
             <p className="text-xs text-gray-600">Total Orders: {orders.length}</p>
             <p className="text-xs text-gray-600">Filtered Orders: {filteredOrders.length}</p>
             <p className="text-xs text-gray-600">Loading: {loading ? 'Yes' : 'No'}</p>
             <p className="text-xs text-gray-600">Error: {error || 'None'}</p>
-          </div>
+          </div> */}
         </div>
         {/* Filter Button */}
         <div className="mb-4 flex justify-end">
@@ -280,7 +282,14 @@ const AllOrdersPage: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{order.order_number}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.customer}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatDate(order.order_date)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{order.status}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                      <div className="flex flex-col">
+                        <span className={order.my_status === 0 ? 'text-orange-600 font-medium' : 'text-green-600 font-medium'}>
+                          {order.my_status === 0 ? 'Draft' : 'Confirmed'}
+                        </span>
+                        <span className="text-xs text-gray-500">{order.status}</span>
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatCurrency(order.total_amount)}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatCurrency(getAmountPaid(order.id))}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{formatCurrency(order.total_amount - getAmountPaid(order.id))}</td>

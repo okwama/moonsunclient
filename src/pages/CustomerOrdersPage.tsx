@@ -14,10 +14,13 @@ import {
   Edit,
   Plus,
   Trash2,
-  Save
+  Save,
+  Truck,
+  Home
 } from 'lucide-react';
 import { salesOrdersService, productsService } from '../services/financialService';
 import { SalesOrder, Product } from '../types/financial';
+import { riderService, Rider } from '../services/riderService';
 
 const CustomerOrdersPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,6 +28,10 @@ const CustomerOrdersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [myStatusFilter, setMyStatusFilter] = useState('0');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<SalesOrder | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -49,9 +56,18 @@ const CustomerOrdersPage: React.FC = () => {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
+  // Rider assignment state
+  const [riders, setRiders] = useState<Rider[]>([]);
+  const [showAssignRiderModal, setShowAssignRiderModal] = useState(false);
+  const [assigningOrder, setAssigningOrder] = useState<SalesOrder | null>(null);
+  const [selectedRider, setSelectedRider] = useState<number | null>(null);
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
+
   useEffect(() => {
     fetchOrders();
     fetchProducts();
+    fetchRiders();
   }, []);
 
   // Close product dropdown when clicking outside
@@ -72,7 +88,7 @@ const CustomerOrdersPage: React.FC = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const response = await salesOrdersService.getAll();
+      const response = await salesOrdersService.getAllIncludingDrafts();
       
       if (response.success && response.data) {
         setOrders(response.data);
@@ -99,21 +115,57 @@ const CustomerOrdersPage: React.FC = () => {
     }
   };
 
-  // Filter orders based on search term and status - only show orders with status 'draft'
+  const fetchRiders = async () => {
+    try {
+      const ridersList = await riderService.getRiders();
+      setRiders(ridersList);
+    } catch (err) {
+      console.error('Error fetching riders:', err);
+      setRiders([]);
+    }
+  };
+
+  // Filter orders based on search term, my_status, and date range
   const filteredOrders = orders.filter(order => {
     const matchesSearch = 
       order.so_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Only show orders with status 'draft'
-    const matchesStatus = order.status === 'draft';
+    const matchesMyStatus = myStatusFilter === 'all' || order.my_status?.toString() === myStatusFilter;
     
-    return matchesSearch && matchesStatus;
+    // Date range filtering
+    let matchesDateRange = true;
+    if (startDate || endDate) {
+      const orderDate = new Date(order.created_at || '');
+      const start = startDate ? new Date(startDate) : null;
+      const end = endDate ? new Date(endDate) : null;
+      
+      if (start && end) {
+        matchesDateRange = orderDate >= start && orderDate <= end;
+      } else if (start) {
+        matchesDateRange = orderDate >= start;
+      } else if (end) {
+        matchesDateRange = orderDate <= end;
+      }
+    }
+    
+    return matchesSearch && matchesMyStatus && matchesDateRange;
   });
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
+  };
+
+  const formatDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   const formatCurrency = (amount: number) => {
@@ -163,11 +215,12 @@ const CustomerOrdersPage: React.FC = () => {
 
   const getMyStatusText = (my_status?: number) => {
     const statusMap: { [key: number]: string } = {
-      0: 'Draft',
+      0: 'New Orders',
       1: 'Approved',
-      2: 'Assigned',
-      3: 'In Transit',
-      4: 'Delivered'
+      2: 'In Transit',
+      3: 'Complete',
+      4: 'Cancelled',
+      5: 'Declined'
     };
     return statusMap[my_status || 0] || 'Unknown';
   };
@@ -395,6 +448,48 @@ const CustomerOrdersPage: React.FC = () => {
     }
   };
 
+  // Rider assignment functions
+  const openAssignRiderModal = async (order: SalesOrder) => {
+    setAssigningOrder(order);
+    setSelectedRider(null);
+    setAssignError(null);
+    setShowAssignRiderModal(true);
+  };
+
+  const closeAssignRiderModal = () => {
+    setShowAssignRiderModal(false);
+    setAssigningOrder(null);
+    setSelectedRider(null);
+    setAssignError(null);
+  };
+
+  const handleAssignRider = async () => {
+    if (!assigningOrder || !selectedRider) return;
+    
+    try {
+      setAssignLoading(true);
+      setAssignError(null);
+      
+      const response = await salesOrdersService.assignRider(assigningOrder.id, selectedRider);
+      
+      if (response.success) {
+        setSuccessMessage('Rider assigned successfully!');
+        await fetchOrders();
+        closeAssignRiderModal();
+        setTimeout(() => {
+          setSuccessMessage('');
+        }, 3000);
+      } else {
+        setAssignError(response.error || 'Failed to assign rider');
+      }
+    } catch (err: any) {
+      console.error('Error assigning rider:', err);
+      setAssignError(err.response?.data?.error || 'Failed to assign rider');
+    } finally {
+      setAssignLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -411,12 +506,26 @@ const CustomerOrdersPage: React.FC = () => {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center">
               <ShoppingCart className="h-8 w-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Customer Orders (Draft Status)</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Customer Orders</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-500">
-                {filteredOrders.length} draft orders
+                {filteredOrders.length} orders
               </span>
+              <button
+                onClick={() => navigate('/')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors flex items-center space-x-2"
+              >
+                <Home className="h-4 w-4" />
+                <span>Home</span>
+              </button>
+              <button
+                onClick={() => navigate('/sales-orders')}
+                className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors flex items-center space-x-2"
+              >
+                <Eye className="h-4 w-4" />
+                <span>View All Orders</span>
+              </button>
             </div>
           </div>
         </div>
@@ -431,6 +540,40 @@ const CustomerOrdersPage: React.FC = () => {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
+          {/* Active Filters Indicator */}
+          {(searchTerm || myStatusFilter !== '0' || startDate || endDate) && (
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <Filter className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">Active Filters:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {searchTerm && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Search: "{searchTerm}"
+                      </span>
+                    )}
+                    {myStatusFilter !== '0' && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        Status: {getMyStatusText(parseInt(myStatusFilter))}
+                      </span>
+                    )}
+                    {startDate && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        From: {formatDate(startDate)}
+                      </span>
+                    )}
+                    {endDate && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        To: {formatDate(endDate)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <div className="flex flex-col md:flex-row gap-4">
             {/* Search */}
             <div className="flex-1">
@@ -446,16 +589,61 @@ const CustomerOrdersPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Status Filter - Disabled since we only show draft orders */}
+            {/* Status Filter */}
             <div className="md:w-48">
               <select
-                value="draft"
-                disabled
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500 cursor-not-allowed"
+                value={myStatusFilter}
+                onChange={(e) => setMyStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="draft">Draft Orders Only</option>
+                <option value="all">All Orders</option>
+                <option value="0">New Orders</option>
+                <option value="1">Approved</option>
+                <option value="2">In Transit</option>
+                <option value="3">Complete</option>
+                <option value="4">Cancelled</option>
+                <option value="5">Declined</option>
               </select>
             </div>
+
+            {/* Date Range Filter */}
+            <div className="md:w-48">
+              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                id="startDate"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="md:w-48">
+              <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                id="endDate"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            {/* Clear Filters Button */}
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setMyStatusFilter('0');
+                setStartDate('');
+                setEndDate('');
+              }}
+              className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+            >
+              Clear Filters
+            </button>
 
             {/* Refresh Button */}
             <button
@@ -478,7 +666,7 @@ const CustomerOrdersPage: React.FC = () => {
               <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
               <p className="text-gray-500">
-                {searchTerm ? 'Try adjusting your search terms.' : 'No status 0 orders available.'}
+                {searchTerm || myStatusFilter !== 'all' || startDate || endDate ? 'Try adjusting your search terms, status filter, or date range.' : 'No orders available.'}
               </p>
             </div>
           ) : (
@@ -491,6 +679,9 @@ const CustomerOrdersPage: React.FC = () => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Customer
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Balance
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Sales Rep
@@ -506,6 +697,9 @@ const CustomerOrdersPage: React.FC = () => {
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Approval Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Assigned Rider
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -551,6 +745,14 @@ const CustomerOrdersPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
+                          <DollarSign className="h-4 w-4 text-gray-400 mr-2" />
+                          <div className="text-sm font-medium text-gray-900">
+                            {order.customer_balance ? formatCurrency(parseFloat(order.customer_balance)) : 'N/A'}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
                           <div className="flex-shrink-0 h-8 w-8">
                             <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
                               <User className="h-4 w-4 text-green-600" />
@@ -587,22 +789,75 @@ const CustomerOrdersPage: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          order.my_status === 1 ? 'bg-green-100 text-green-800' :
                           order.my_status === 0 ? 'bg-gray-100 text-gray-800' :
-                          'bg-blue-100 text-blue-800'
+                          order.my_status === 1 ? 'bg-green-100 text-green-800' :
+                          order.my_status === 2 ? 'bg-blue-100 text-blue-800' :
+                          order.my_status === 3 ? 'bg-green-100 text-green-800' :
+                          order.my_status === 4 ? 'bg-red-100 text-red-800' :
+                          order.my_status === 5 ? 'bg-red-100 text-red-800' :
+                          'bg-gray-100 text-gray-800'
                         }`}>
                           {getMyStatusText(order.my_status)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <button
-                          onClick={() => openViewModal(order)}
-                          className="text-blue-600 hover:text-blue-900 flex items-center"
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </button>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {order.rider_name ? (
+                          <div className="flex items-center">
+                            <Truck className="h-4 w-4 text-green-500 mr-2" />
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{order.rider_name}</div>
+                              <div className="text-sm text-gray-500">{order.rider_contact}</div>
+                                                              {order.assigned_at && (
+                                  <div className="text-xs text-gray-400">
+                                    Assigned: {formatDateTime(order.assigned_at)}
+                                  </div>
+                                )}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400">Not assigned</span>
+                        )}
                       </td>
+                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                         <div className="flex items-center space-x-2">
+                           <button
+                             onClick={() => openViewModal(order)}
+                             className="text-blue-600 hover:text-blue-900 flex items-center"
+                           >
+                             <Eye className="h-4 w-4 mr-1" />
+                             View
+                           </button>
+                           {order.my_status === 1 && (
+                             <button
+                               onClick={() => openAssignRiderModal(order)}
+                               className="text-green-600 hover:text-green-900 flex items-center bg-green-50 hover:bg-green-100 px-2 py-1 rounded"
+                             >
+                               <Truck className="h-4 w-4 mr-1" />
+                               Assign Rider
+                             </button>
+                           )}
+                           {(order.my_status === 1 || order.my_status === 2 || order.my_status === 3) && (
+                             <button
+                               onClick={() => navigate(`/sales-orders/${order.id}`)}
+                               className="text-purple-600 hover:text-purple-900 flex items-center bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded"
+                             >
+                               <Package className="h-4 w-4 mr-1" />
+                               Invoice
+                             </button>
+                             
+                           )}
+                           {(order.my_status === 1 || order.my_status === 2 || order.my_status === 3) && (
+                             <button
+                               onClick={() => navigate(`/delivery-note/${order.id}`)}
+                               className="text-purple-600 hover:text-purple-900 flex items-center bg-purple-50 hover:bg-purple-100 px-2 py-1 rounded"
+                             >
+                               <Package className="h-4 w-4 mr-1" />
+                               Delivery Note
+                             </button>
+                             
+                           )}
+                         </div>
+                       </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1170,6 +1425,67 @@ const CustomerOrdersPage: React.FC = () => {
           </div>
         </div>
       </div>
+        )}
+
+        {/* Assign Rider Modal */}
+        {showAssignRiderModal && assigningOrder && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-md shadow-lg rounded-md bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Assign Rider to Order {assigningOrder.so_number}</h2>
+                <button
+                  onClick={closeAssignRiderModal}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              {assignError && (
+                <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
+                  {assignError}
+                </div>
+              )}
+
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Rider
+                </label>
+                <select
+                  value={selectedRider || ''}
+                  onChange={(e) => setSelectedRider(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  disabled={riders.length === 0}
+                >
+                  <option value="">Choose a rider...</option>
+                  {riders.map(rider => (
+                    <option key={rider.id} value={rider.id}>
+                      {rider.name} - {rider.contact}
+                    </option>
+                  ))}
+                </select>
+                {riders.length === 0 && (
+                  <div className="text-xs text-red-500 mt-2">No riders available. Please add riders.</div>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  onClick={closeAssignRiderModal}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAssignRider}
+                  disabled={assignLoading || !selectedRider}
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50"
+                >
+                  {assignLoading ? 'Assigning...' : 'Assign Rider'}
+                </button>
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Product Dropdown Portal */}

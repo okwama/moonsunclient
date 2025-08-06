@@ -139,7 +139,7 @@ const SettingsPage: React.FC = () => {
                 <div className="relative">
                   <img
                     ref={imgRef}
-                    src={user.avatar_url || avatarUrl || `${import.meta.env.VITE_UI_AVATARS_API || 'https://ui-avatars.com/api'}/?name=${encodeURIComponent(form.name)}&background=2563eb&color=fff&size=128`}
+                    src={user.avatar_url || avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(form.name)}&background=2563eb&color=fff&size=128`}
                     alt="Profile"
                     className="w-24 h-24 rounded-full object-cover border-2 border-blue-200"
                   />

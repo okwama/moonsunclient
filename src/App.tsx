@@ -45,6 +45,7 @@ import AddEquityPage from './pages/AddEquityPage';
 import EquityEntryPage from './pages/EquityEntryPage';
 import AllOrdersPage from './pages/AllOrdersPage';
 import SalesOrderDetailsPage from './pages/SalesOrderDetailsPage';
+import DeliveryNote from './pages/DeliveryNote';
 import CashAndEquivalentsPage from './pages/CashAndEquivalentsPage';
 import CashAccountDetailsPage from './pages/CashAccountDetailsPage';
 import JournalEntriesPage from './pages/JournalEntriesPage';
@@ -262,6 +263,7 @@ const App = () => {
           <Route path="/cash-account-details/:accountId" element={<CashAccountDetailsPage />} />
           <Route path="/all-orders" element={<AllOrdersPage />} />
           <Route path="/sales-orders/:id" element={<SalesOrderDetailsPage />} />
+          <Route path="/delivery-note/:id" element={<DeliveryNote />} />
           <Route path="/journal-entries" element={<JournalEntriesPage />} />
           <Route path="/payroll-management" element={<PayrollManagementPage />} />
           <Route path="/inventory-transactions" element={<InventoryTransactionsPage />} />

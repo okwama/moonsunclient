@@ -210,7 +210,7 @@ const EmployeesPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name,
-          photo_url: `${import.meta.env.VITE_RANDOM_USER_API || 'https://randomuser.me/api'}/portraits/lego/1.jpg`,
+          photo_url: 'https://randomuser.me/api/portraits/lego/1.jpg',
           empl_no: form.staffNumber,
           id_no: form.staffNumber,
           role: form.department,
@@ -274,7 +274,7 @@ const EmployeesPage: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editForm.name,
-          photo_url: `${import.meta.env.VITE_RANDOM_USER_API || 'https://randomuser.me/api'}/portraits/lego/1.jpg`,
+          photo_url: 'https://randomuser.me/api/portraits/lego/1.jpg',
           empl_no: editForm.staffNumber,
           id_no: editForm.staffNumber,
           role: editForm.department,

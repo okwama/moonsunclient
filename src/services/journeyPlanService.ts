@@ -18,7 +18,7 @@ export interface JourneyPlan {
   updatedAt: string;
 }
 
-const API_URL = import.meta.env.VITE_DEV_SERVER_URL || 'http://localhost:5000';
+const API_URL = 'http://localhost:5000'; // Add your backend URL here
 
 const journeyPlanService = {
   getJourneyPlans: async (): Promise<JourneyPlan[]> => {

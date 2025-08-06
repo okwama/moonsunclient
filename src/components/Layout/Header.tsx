@@ -1,6 +1,7 @@
 import React from 'react';
-import { MenuIcon, BellIcon, SearchIcon } from 'lucide-react';
+import { MenuIcon, BellIcon, SearchIcon, Home } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface HeaderProps {
   setSidebarOpen: (open: boolean) => void;
@@ -8,6 +9,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="relative z-10 flex-shrink-0 flex h-16 bg-white shadow-sm">
@@ -22,6 +24,13 @@ const Header: React.FC<HeaderProps> = ({ setSidebarOpen }) => {
       <div className="flex-1 px-4 flex justify-between">
         <div className="flex-1 flex">
           <div className="w-full flex md:ml-0">
+            <button
+              onClick={() => navigate('/')}
+              className="mr-4 px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors flex items-center space-x-2"
+            >
+              <Home className="h-4 w-4" />
+              <span>Home</span>
+            </button>
             <label htmlFor="search-field" className="sr-only">
               Search
             </label>
