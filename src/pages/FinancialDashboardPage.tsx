@@ -61,6 +61,7 @@ const FinancialDashboardPage = () => {
     { name: 'Create Customer Order', icon: ShoppingCart, color: 'green', href: '/financial/create-customer-order' },
     { name: 'View Customer Orders', icon: Package, color: 'indigo', href: '/financial/customer-orders' },
     { name: 'Create Invoice', icon: FileText, color: 'green', href: '/create-invoice' },
+    { name: 'Create Credit Note', icon: FileText, color: 'orange', href: '/create-credit-note' },
     { name: 'Add Expense', icon: DollarSign, color: 'red', href: '/add-expense' },
     { name: 'Chat Room', icon: Notebook, color: 'purple', href: '/chat-room' },
     { name: 'Equity Entries', icon: DollarSign, color: 'emerald', href: '/equity/entries', featured: true },
@@ -79,6 +80,7 @@ const FinancialDashboardPage = () => {
     { title: 'Purchase Orders', desc: 'Manage purchase orders', icon: ShoppingCart, color: 'orange', href: '/purchase-orders' },
     { title: 'Customer Orders', desc: 'View all customer orders', icon: Package, color: 'indigo', href: '/financial/customer-orders' },
     { title: 'Sales Orders', desc: 'Manage sales orders', icon: DollarSign, color: 'red', href: '/all-orders' },
+    { title: 'Credit Notes', desc: 'View and manage credit notes', icon: FileText, color: 'orange', href: '/credit-notes' },
     { title: 'Receipts', desc: 'Record customer payments', icon: CreditCard, color: 'yellow', href: '/receipts' },
     { title: 'Payroll Management', desc: 'Record staff payroll', icon: CreditCard, color: 'yellow', href: '/payroll-management' },
     { title: 'Journal Entries', desc: 'View all journal entries', icon: FileText, color: 'amber', href: '/journal-entries' }

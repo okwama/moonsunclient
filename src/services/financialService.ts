@@ -347,6 +347,14 @@ export const salesOrderItemsService = {
   }
 };
 
+// Invoice Service
+export const invoiceService = {
+  getById: async (invoiceId: number): Promise<ApiResponse<any>> => {
+    const response = await axios.get(`${API_BASE_URL}/financial/invoices/${invoiceId}`);
+    return response.data;
+  }
+};
+
 // My Assets Service
 export const myAssetsService = {
   getAll: async (params?: {

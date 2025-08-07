@@ -32,6 +32,9 @@ import StoreInventoryPage from './pages/StoreInventoryPage';
 import UpdateStockQuantityPage from './pages/UpdateStockQuantityPage';
 import PayablesPage from './pages/PayablesPage';
 import CreateInvoicePage from './pages/CreateInvoicePage';
+import CreateCreditNotePage from './pages/CreateCreditNotePage';
+import CreditNotesPage from './pages/CreditNotesPage';
+import ClientCreditNotePage from './pages/ClientCreditNotePage';
 import ReceivablesPage from './pages/ReceivablesPage';
 import ProfitLossReportPage from './pages/ProfitLossReportPage';
 import AddExpensePage from './pages/AddExpensePage';
@@ -253,6 +256,10 @@ const App = () => {
           <Route path="/reports/cash-flow" element={<CashFlowReportPage />} />
           <Route path="/reports/general-ledger" element={<GeneralLedgerReportPage />} />
           <Route path="/create-invoice" element={<CreateInvoicePage />} />
+          <Route path="/create-credit-note" element={<CreateCreditNotePage />} />
+          <Route path="/credit-notes" element={<CreditNotesPage />} />
+          <Route path="/credit-notes/:id" element={<CreditNotesPage />} />
+          <Route path="/dashboard/clients/:clientId/credit-note" element={<ClientCreditNotePage />} />
           <Route path="/add-expense" element={<AddExpensePage />} />
           <Route path="/assets/add" element={<AddAssetPage />} />
           <Route path="/assets/depreciation" element={<AssetDepreciationPage />} />

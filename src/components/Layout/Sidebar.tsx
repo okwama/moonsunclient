@@ -137,6 +137,18 @@ const navigation = [
     roles: ['admin', 'manager', 'accountant']
   },
   {
+    name: 'Create Credit Note',
+    href: '/create-credit-note',
+    icon: FileTextIcon,
+    roles: ['admin', 'manager', 'accountant']
+  },
+  {
+    name: 'Credit Notes',
+    href: '/credit-notes',
+    icon: FileTextIcon,
+    roles: ['admin', 'manager', 'accountant']
+  },
+  {
     name: 'Add Asset',
     href: '/assets/add',
     icon: BoxIcon,
