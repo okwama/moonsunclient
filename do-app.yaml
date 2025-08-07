@@ -1,0 +1,26 @@
+name: moonsun-client
+services:
+- name: web
+  source_dir: /
+  github:
+    repo: your-username/your-repo
+    branch: main
+  run_command: npm run build
+  build_command: npm install && npm run build
+  output_dir: dist
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  routes:
+  - path: /
+  envs:
+  - key: VITE_API_URL
+    value: http://64.226.66.235/api
+  - key: VITE_PRODUCTION_API_URL
+    value: http://64.226.66.235/api
+  - key: VITE_SOCKET_URL
+    value: http://64.226.66.235
+  - key: VITE_APP_NAME
+    value: Retail Finance System
+  - key: VITE_APP_VERSION
+    value: 1.0.0 
