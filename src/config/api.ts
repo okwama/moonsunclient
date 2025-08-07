@@ -1,6 +1,6 @@
 // Centralized API Configuration
 export const API_CONFIG = {
-  // Base URL - force use of new server
+  // Base URL - using HTTP for Digital Ocean server
   BASE_URL: 'http://64.226.66.235/api',
   
   // Socket URL for real-time features

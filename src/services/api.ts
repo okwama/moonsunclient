@@ -31,7 +31,7 @@ export interface ApiError extends Error {
 
 // Validate and get API base URL
 const getApiBaseUrl = (): string => {
-  // Production URL - updated to new server
+  // Production URL - using HTTP for Digital Ocean server
   const PRODUCTION_API_URL = 'http://64.226.66.235/api';
   
   // Check if we're in development mode

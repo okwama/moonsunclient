@@ -1,6 +1,6 @@
 RewriteEngine On
 
-# Handle API requests - proxy to your server
+# Handle API requests - proxy to your server with HTTP
 RewriteCond %{REQUEST_URI} ^/api/(.*)$
 RewriteRule ^api/(.*)$ http://64.226.66.235/api/$1 [P,L]
 
