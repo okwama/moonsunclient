@@ -1,20 +1,5 @@
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-// Add request interceptor to include auth token
-axios.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+import { api } from './api';
 
 export interface CreditNoteItem {
   product_id: number;
@@ -75,31 +60,45 @@ export interface ApiResponse<T> {
 export const creditNoteService = {
   // Get all credit notes
   getAll: async (): Promise<ApiResponse<CreditNote[]>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/credit-notes`);
+    const response = await api.get('/financial/credit-notes');
     return response.data;
   },
 
   // Get credit note by ID
   getById: async (id: number): Promise<ApiResponse<CreditNote>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/credit-notes/${id}`);
+    const response = await api.get(`/financial/credit-notes/${id}`);
     return response.data;
   },
 
   // Create a new credit note
   create: async (creditNote: CreateCreditNoteForm): Promise<ApiResponse<CreditNote>> => {
-    const response = await axios.post(`${API_BASE_URL}/financial/credit-notes`, creditNote);
+    const response = await api.post('/financial/credit-notes', creditNote);
     return response.data;
   },
 
   // Get customer invoices for credit note creation
   getCustomerInvoices: async (customerId: number): Promise<ApiResponse<CustomerInvoice[]>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/customers/${customerId}/invoices-for-credit`);
+    const response = await api.get(`/financial/customers/${customerId}/invoices-for-credit`);
     return response.data;
   },
 
   // Get credit notes for a specific customer
-  getCustomerCreditNotes: async (customerId: number): Promise<ApiResponse<CreditNote[]>> => {
-    const response = await axios.get(`${API_BASE_URL}/financial/customers/${customerId}/credit-notes`);
+  getByCustomerId: async (customerId: number): Promise<ApiResponse<CreditNote[]>> => {
+    const response = await api.get(`/financial/customers/${customerId}/credit-notes`);
+    return response.data;
+  },
+
+  // Update credit note status
+  updateStatus: async (id: number, status: string): Promise<ApiResponse<void>> => {
+    const response = await api.patch(`/financial/credit-notes/${id}/status`, { status });
+    return response.data;
+  },
+
+  // Delete credit note
+  delete: async (id: number): Promise<ApiResponse<void>> => {
+    const response = await api.delete(`/financial/credit-notes/${id}`);
     return response.data;
   }
-}; 
+};
+
+export default creditNoteService; 

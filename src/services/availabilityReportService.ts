@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { api } from './api';
 
 export interface AvailabilityReport {
   id: number;
@@ -32,8 +33,6 @@ export interface AvailabilityReportResponse {
   totalPages: number;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
 export const availabilityReportService = {
   async getAvailabilityReports(
     filters: AvailabilityReportFilters = {},
@@ -59,17 +58,17 @@ export const availabilityReportService = {
       params.append('search', search);
     }
     
-    const response = await axios.get(`${API_BASE_URL}/availability-reports?${params}`);
+    const response = await api.get(`/availability-reports?${params}`);
     return response.data;
   },
 
   async getAvailabilityCountries(): Promise<string[]> {
-    const response = await axios.get(`${API_BASE_URL}/availability-countries`);
+    const response = await api.get('/availability-countries');
     return response.data;
   },
 
   async getAvailabilitySalesReps(): Promise<string[]> {
-    const response = await axios.get(`${API_BASE_URL}/availability-sales-reps`);
+    const response = await api.get('/availability-sales-reps');
     return response.data;
   },
 
@@ -91,7 +90,7 @@ export const availabilityReportService = {
       params.append('search', search);
     }
     
-    const response = await axios.get(`${API_BASE_URL}/availability-reports/export?${params}`, {
+    const response = await api.get(`/availability-reports/export?${params}`, {
       responseType: 'blob'
     });
     return response.data;

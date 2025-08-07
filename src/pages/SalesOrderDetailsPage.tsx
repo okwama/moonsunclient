@@ -6,8 +6,7 @@ import axios from 'axios';
 import { FileText, X, CreditCard } from 'lucide-react';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { getApiUrl } from '../config/api';
 
 interface JournalEntry {
   journal_entry_id: number;
@@ -96,7 +95,7 @@ const SalesOrderDetailsPage: React.FC = () => {
     
     setLoadingBalance(true);
     try {
-      const response = await axios.get(`${API_BASE_URL}/financial/clients/${clientId}/outstanding-balance`);
+      const response = await axios.get(getApiUrl(`financial/clients/${clientId}/outstanding-balance`));
       if (response.data.success) {
         setClientOutstandingBalance(response.data.data.outstanding_balance || 0);
       }
@@ -114,7 +113,7 @@ const SalesOrderDetailsPage: React.FC = () => {
     setJournalLoading(true);
     setJournalError(null);
     try {
-      const res = await axios.get(`${API_BASE_URL}/financial/journal-entries/invoice/${id}`);
+      const res = await axios.get(getApiUrl(`financial/journal-entries/invoice/${id}`));
       if (res.data.success) {
         setJournalEntries(res.data.data);
       } else {
@@ -140,7 +139,7 @@ const SalesOrderDetailsPage: React.FC = () => {
 
   const fetchPaymentAccounts = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/financial/accounts/type/9`);
+      const res = await axios.get(getApiUrl(`financial/accounts/type/9`));
       if (res.data.success) {
         setPaymentAccounts(res.data.data);
       }
@@ -201,7 +200,7 @@ const SalesOrderDetailsPage: React.FC = () => {
         invoice_id: id
       };
 
-      const res = await axios.post(`${API_BASE_URL}/financial/receivables/payment`, paymentData);
+      const res = await axios.post(getApiUrl(`financial/receivables/payment`), paymentData);
 
       console.log('Payment response:', res.data);
 
@@ -236,7 +235,7 @@ const SalesOrderDetailsPage: React.FC = () => {
       let receiptId = pendingReceiptId;
       if (!receiptId) {
         // Use the new endpoint to get pending receipts for this specific invoice
-        const res = await axios.get(`${API_BASE_URL}/financial/receipts/invoice/${id}/pending`);
+        const res = await axios.get(getApiUrl(`financial/receipts/invoice/${id}/pending`));
         if (res.data.success) {
           if (res.data.data.length > 0) {
             receiptId = res.data.data[0].id; // Take the most recent one
@@ -252,7 +251,7 @@ const SalesOrderDetailsPage: React.FC = () => {
         }
       }
 
-      const res = await axios.post(`${API_BASE_URL}/financial/receivables/confirm-payment`, {
+              const res = await axios.post(getApiUrl(`financial/receivables/confirm-payment`), {
         receipt_id: receiptId
       });
 

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { api } from './api';
 
 export interface JourneyPlan {
   id: number;
@@ -18,17 +19,11 @@ export interface JourneyPlan {
   updatedAt: string;
 }
 
-const API_URL = 'http://localhost:5000'; // Add your backend URL here
-
 const journeyPlanService = {
   getJourneyPlans: async (): Promise<JourneyPlan[]> => {
     try {
       console.log('Making API call to fetch journey plans...');
-      const response = await axios.get(`${API_URL}/api/journey-plans`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await api.get('/journey-plans');
       console.log('API response:', response.data);
       return response.data;
     } catch (error) {
@@ -51,7 +46,7 @@ const journeyPlanService = {
 
   getJourneyPlan: async (id: number): Promise<JourneyPlan> => {
     try {
-      const response = await axios.get(`${API_URL}/api/journey-plans/${id}`);
+      const response = await api.get(`/journey-plans/${id}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching journey plan:', error);
@@ -61,7 +56,7 @@ const journeyPlanService = {
 
   createJourneyPlan: async (data: Partial<JourneyPlan>): Promise<JourneyPlan> => {
     try {
-      const response = await axios.post(`${API_URL}/api/journey-plans`, data);
+      const response = await api.post('/journey-plans', data);
       return response.data;
     } catch (error) {
       console.error('Error creating journey plan:', error);
@@ -71,7 +66,7 @@ const journeyPlanService = {
 
   updateJourneyPlan: async (id: number, data: Partial<JourneyPlan>): Promise<JourneyPlan> => {
     try {
-      const response = await axios.patch(`${API_URL}/api/journey-plans/${id}`, data);
+      const response = await api.patch(`/journey-plans/${id}`, data);
       return response.data;
     } catch (error) {
       console.error('Error updating journey plan:', error);
@@ -81,7 +76,7 @@ const journeyPlanService = {
 
   deleteJourneyPlan: async (id: number): Promise<void> => {
     try {
-      await axios.delete(`${API_URL}/api/journey-plans/${id}`);
+      await api.delete(`/journey-plans/${id}`);
     } catch (error) {
       console.error('Error deleting journey plan:', error);
       throw error;
